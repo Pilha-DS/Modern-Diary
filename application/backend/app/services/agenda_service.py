@@ -4,17 +4,19 @@ from sqlalchemy.orm import Session
 
 from app.core.access import AccessGuard, Actor
 from app.core.errors import AppError
-from app.models.agenda import AgendaActivity, AgendaDay, Priority
+from app.models.agenda import AgendaActivity, AgendaDay, AgendaNote, Priority
 from app.models.api_secret import AuditAction
 from app.models.area import Area
 from app.models.sensitivity import Sensitivity
 from app.repositories.agenda_repository import AgendaRepository
 from app.schemas.agenda import AgendaSummaryDay
 from app.schemas.tag import TagSummary
+from app.services.holiday_service import HolidayService
 from app.services.tag_service import TagService
 
 MAX_RANGE_DAYS = 366
 MAX_ACTIVITIES_PER_DAY = 100
+MAX_NOTES_PER_DAY = 50
 
 
 class AgendaService:
@@ -24,6 +26,7 @@ class AgendaService:
         self.access = AccessGuard(session, actor)
         self.agenda = AgendaRepository(session)
         self.tags = TagService(session)
+        self.holidays = HolidayService(session, actor.user_id)
 
     def summarize(self, start: date, end: date) -> list[AgendaSummaryDay]:
         if start > end:
@@ -40,11 +43,14 @@ class AgendaService:
             )
 
         day_criteria = self._both_areas_criteria()
+        note_criteria = self.access.optional_visible_on(
+            Area.DAY, AgendaNote.sensitivity
+        )
         activity_criteria = self.access.optional_visible(Area.ACTIVITY)
 
         notes = (
-            set(self.agenda.note_days(self.actor.user_id, start, end, day_criteria))
-            if day_criteria is not None
+            set(self.agenda.note_days(self.actor.user_id, start, end, note_criteria))
+            if note_criteria is not None
             else set()
         )
         totals = (
@@ -60,9 +66,10 @@ class AgendaService:
         tags_by_day = (
             self._visible_day_tags(start, end) if day_criteria is not None else {}
         )
+        holidays = self.holidays.names_between(start, end)
 
         summaries: list[AgendaSummaryDay] = []
-        for day in sorted(notes | set(totals) | set(tags_by_day)):
+        for day in sorted(notes | set(totals) | set(tags_by_day) | set(holidays)):
             total, done, rank = totals.get(day, (0, 0, 0))
             summaries.append(
                 AgendaSummaryDay(
@@ -72,6 +79,7 @@ class AgendaService:
                     activities_done=done,
                     highest_priority=_priority_from_rank(rank) if total else None,
                     tags=tags_by_day.get(day, []),
+                    holiday=holidays.get(day),
                 )
             )
         return summaries
@@ -104,11 +112,21 @@ class AgendaService:
 
     def get_day(
         self, day: date
-    ) -> tuple[AgendaDay | None, list[AgendaActivity], list[TagSummary]]:
+    ) -> tuple[
+        AgendaDay | None,
+        list[AgendaNote],
+        list[AgendaActivity],
+        list[TagSummary],
+        str | None,
+    ]:
         day_criteria = self._both_areas_criteria()
+        note_criteria = self.access.optional_visible_on(
+            Area.DAY, AgendaNote.sensitivity
+        )
         activity_criteria = self.access.optional_visible(Area.ACTIVITY)
 
         note_row = None
+        notes: list[AgendaNote] = []
         tags: list[TagSummary] = []
         if day_criteria is not None:
             note_row = self.agenda.get_day(self.actor.user_id, day, day_criteria)
@@ -120,13 +138,18 @@ class AgendaService:
                 tags = self.tags.day_tags(
                     self.actor.user_id, day, day
                 ).get(day, [])
+                notes = (
+                    self.agenda.list_notes(self.actor.user_id, day, note_criteria)
+                    if note_criteria is not None
+                    else []
+                )
 
         activities = (
             self.agenda.list_activities(self.actor.user_id, day, activity_criteria)
             if activity_criteria is not None
             else []
         )
-        return note_row, activities, tags
+        return note_row, notes, activities, tags, self.holidays.name_on(day)
 
     def set_day_tags(self, day: date, tag_ids: list[int]) -> list[TagSummary]:
         row = self._get_day_row_for_write(day)
@@ -141,46 +164,14 @@ class AgendaService:
         self.session.commit()
         return tags
 
-    def save_note(
-        self,
-        day: date,
-        note: str | None,
-        *,
-        sensitivity: Sensitivity | None = None,
-    ) -> AgendaDay | None:
-        cleaned = note.rstrip() if note is not None else None
-        if cleaned is not None and not cleaned.strip():
-            cleaned = None
-
-        day_criteria = self.access.visible(Area.DAY)
-        row = self.agenda.get_day(self.actor.user_id, day, day_criteria)
-        if row is None and self.agenda.get_day(self.actor.user_id, day) is not None:
-            raise AppError(
-                code="AGENDA_DAY_NOT_FOUND",
-                message="Dia não encontrado.",
-                status_code=404,
-            )
-
-        if cleaned is None:
-            if row is not None:
-                self.access.ensure_write(
-                    Area.DAY,
-                    row.sensitivity,
-                    target_type="agenda_day",
-                    target_id=row.id,
-                    action=AuditAction.DELETE,
-                )
-                self.agenda.delete_day(self.actor.user_id, day)
-            self.session.commit()
-            return None
-
+    def set_day_sensitivity(self, day: date, sensitivity: Sensitivity) -> AgendaDay:
+        row = self._get_day_row_for_write(day)
         if row is None:
             self.access.ensure_create(Area.DAY, target_type="agenda_day")
             row = AgendaDay(
                 user_id=self.actor.user_id,
                 day=day,
-                note=cleaned,
-                sensitivity=sensitivity or Sensitivity.PUBLIC,
+                sensitivity=sensitivity,
             )
             self.agenda.add(row)
             self.session.flush()
@@ -192,13 +183,84 @@ class AgendaService:
                 target_type="agenda_day",
                 target_id=row.id,
             )
-            if sensitivity is not None:
-                self.access.ensure_new_level(Area.DAY, sensitivity)
-                row.sensitivity = sensitivity
-            row.note = cleaned
-
+            self.access.ensure_new_level(Area.DAY, sensitivity)
+            row.sensitivity = sensitivity
         self.session.commit()
         return row
+
+    def create_note(
+        self,
+        day: date,
+        content: str,
+        *,
+        sensitivity: Sensitivity = Sensitivity.PUBLIC,
+    ) -> AgendaNote:
+        self.access.ensure_create(Area.DAY, target_type="agenda_note")
+        if self.agenda.count_notes(self.actor.user_id, day) >= MAX_NOTES_PER_DAY:
+            raise AppError(
+                code="AGENDA_NOTE_LIMIT",
+                message="Este dia já atingiu o limite de notas.",
+                status_code=409,
+            )
+
+        day_row = self._get_day_row_for_write(day)
+        if day_row is None:
+            day_row = AgendaDay(
+                user_id=self.actor.user_id,
+                day=day,
+                sensitivity=Sensitivity.PUBLIC,
+            )
+            self.agenda.add(day_row)
+
+        note = AgendaNote(
+            user_id=self.actor.user_id,
+            day=day,
+            content=content,
+            sensitivity=sensitivity,
+        )
+        self.agenda.add(note)
+        self.session.flush()
+        self.access.record_created(Area.DAY, "agenda_note", note.id)
+        self.session.commit()
+        return note
+
+    def update_note(
+        self,
+        note_id: int,
+        *,
+        content: str | None = None,
+        sensitivity: Sensitivity | None = None,
+    ) -> AgendaNote:
+        note = self._get_note_or_fail(note_id)
+        self.access.ensure_write(
+            Area.DAY,
+            note.sensitivity,
+            target_type="agenda_note",
+            target_id=note.id,
+        )
+
+        if content is not None:
+            note.content = content
+        if sensitivity is not None:
+            self.access.ensure_new_level(Area.DAY, sensitivity)
+            note.sensitivity = sensitivity
+
+        self.session.commit()
+        return note
+
+    def delete_note(self, note_id: int) -> None:
+        note = self._get_note_or_fail(note_id)
+        self.access.ensure_write(
+            Area.DAY,
+            note.sensitivity,
+            target_type="agenda_note",
+            target_id=note.id,
+            action=AuditAction.DELETE,
+        )
+        day = note.day
+        self.agenda.remove(note)
+        self.session.commit()
+        self._drop_day_without_content(day)
 
     def create_activity(
         self,
@@ -277,7 +339,7 @@ class AgendaService:
         day = activity.day
         self.agenda.remove(activity)
         self.session.commit()
-        self._drop_day_without_note(day)
+        self._drop_day_without_content(day)
 
     def _get_day_row_for_write(self, day: date) -> AgendaDay | None:
         day_criteria = self.access.visible(Area.DAY)
@@ -290,12 +352,28 @@ class AgendaService:
             )
         return row
 
-    def _drop_day_without_note(self, day: date) -> None:
+    def _get_note_or_fail(self, note_id: int) -> AgendaNote:
+        note = self.agenda.get_note(
+            self.actor.user_id,
+            note_id,
+            self.access.visible_on(Area.DAY, AgendaNote.sensitivity),
+        )
+        if note is None:
+            raise AppError(
+                code="AGENDA_NOTE_NOT_FOUND",
+                message="Nota não encontrada.",
+                status_code=404,
+            )
+        return note
+
+    def _drop_day_without_content(self, day: date) -> None:
         day_criteria = self.access.optional_visible(Area.DAY)
         if day_criteria is None:
             return
         row = self.agenda.get_day(self.actor.user_id, day, day_criteria)
-        if row is None or row.note is not None:
+        if row is None:
+            return
+        if self.agenda.count_notes(self.actor.user_id, day) > 0:
             return
         if self.agenda.count_activities(self.actor.user_id, day) > 0:
             return

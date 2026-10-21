@@ -444,9 +444,9 @@ def test_agenda_separates_days_and_activities(
     client: TestClient, user_auth: dict
 ) -> None:
     headers = auth_headers(user_auth)
-    client.put(
-        "/api/v1/agenda/days/2026-10-20/note",
-        json={"note": "Nota do dia"},
+    client.post(
+        "/api/v1/agenda/days/2026-10-20/notes",
+        json={"content": "Nota do dia"},
         headers=headers,
     )
     client.post(
@@ -466,7 +466,7 @@ def test_agenda_separates_days_and_activities(
     day_view = client.get(
         "/api/v1/agenda/days/2026-10-20", headers=_token_headers(days_only)
     ).json()
-    assert day_view["data"]["note"] == "Nota do dia"
+    assert day_view["data"]["notes"][0]["content"] == "Nota do dia"
     assert day_view["data"]["activities"] == []
 
     activities_only = _create_secret(
@@ -480,7 +480,7 @@ def test_agenda_separates_days_and_activities(
     activity_view = client.get(
         "/api/v1/agenda/days/2026-10-20", headers=_token_headers(activities_only)
     ).json()
-    assert activity_view["data"]["note"] is None
+    assert activity_view["data"]["notes"] == []
     assert len(activity_view["data"]["activities"]) == 1
 
 

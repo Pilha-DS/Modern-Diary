@@ -26,46 +26,94 @@ def test_agenda_requires_authentication(client: TestClient) -> None:
     assert response.json()["code"] == "UNAUTHORIZED"
 
 
-def test_saves_note_and_reads_day(client: TestClient, user_auth: dict) -> None:
+def test_creates_notes_and_reads_day(client: TestClient, user_auth: dict) -> None:
     headers = auth_headers(user_auth)
-    note = "# Terça\n\n- Estudar **FastAPI**"
 
-    saved = client.put(
-        "/api/v1/agenda/days/2026-10-20/note",
-        json={"note": note},
+    first = client.post(
+        "/api/v1/agenda/days/2026-10-20/notes",
+        json={"content": "# Terça\n\n- Estudar **FastAPI**"},
+        headers=headers,
+    )
+    second = client.post(
+        "/api/v1/agenda/days/2026-10-20/notes",
+        json={"content": "Segunda nota", "sensitivity": "sigiloso"},
         headers=headers,
     )
 
-    assert saved.status_code == 200
-    assert saved.json()["code"] == "AGENDA_NOTE_SAVED"
-    assert saved.json()["data"]["note"] == note
+    assert first.status_code == 201
+    assert first.json()["code"] == "AGENDA_NOTE_CREATED"
+    assert second.status_code == 201
 
     day = client.get("/api/v1/agenda/days/2026-10-20", headers=headers)
+    body = day.json()
 
     assert day.status_code == 200
-    assert day.json()["code"] == "AGENDA_DAY_RETRIEVED"
-    assert day.json()["data"] == {
-        "day": "2026-10-20",
-        "note": note,
-        "sensitivity": "publico",
-        "activities": [],
-        "tags": [],
-    }
+    assert body["code"] == "AGENDA_DAY_RETRIEVED"
+    assert body["data"]["day"] == "2026-10-20"
+    assert body["data"]["sensitivity"] == "publico"
+    assert body["data"]["activities"] == []
+    assert body["data"]["tags"] == []
+    assert body["data"]["holiday"] is None
+    assert [note["content"] for note in body["data"]["notes"]] == [
+        "# Terça\n\n- Estudar **FastAPI**",
+        "Segunda nota",
+    ]
+    assert [note["sensitivity"] for note in body["data"]["notes"]] == [
+        "publico",
+        "sigiloso",
+    ]
 
 
-def test_blank_note_removes_day_from_summary(client: TestClient, user_auth: dict) -> None:
+def test_updates_note_content_and_sensitivity(
+    client: TestClient, user_auth: dict
+) -> None:
     headers = auth_headers(user_auth)
-    client.put(
-        "/api/v1/agenda/days/2026-10-20/note",
-        json={"note": "Alguma coisa"},
+    created = client.post(
+        "/api/v1/agenda/days/2026-10-20/notes",
+        json={"content": "Rascunho"},
+        headers=headers,
+    ).json()["data"]
+
+    note_id = created["notes"][0]["id"]
+    updated = client.patch(
+        f"/api/v1/agenda/notes/{note_id}",
+        json={"content": "Texto final", "sensitivity": "sigiloso"},
         headers=headers,
     )
 
-    client.put(
-        "/api/v1/agenda/days/2026-10-20/note",
-        json={"note": "   "},
-        headers=headers,
+    assert updated.status_code == 200
+    assert updated.json()["code"] == "AGENDA_NOTE_UPDATED"
+    assert updated.json()["data"]["content"] == "Texto final"
+    assert updated.json()["data"]["sensitivity"] == "sigiloso"
+
+
+def test_blank_note_is_validation_error(client: TestClient, user_auth: dict) -> None:
+    response = client.post(
+        "/api/v1/agenda/days/2026-10-20/notes",
+        json={"content": "   "},
+        headers=auth_headers(user_auth),
     )
+
+    assert response.status_code == 422
+    assert response.json()["code"] == "VALIDATION_ERROR"
+
+
+def test_delete_last_note_removes_day_from_summary(
+    client: TestClient, user_auth: dict
+) -> None:
+    headers = auth_headers(user_auth)
+    created = client.post(
+        "/api/v1/agenda/days/2026-10-20/notes",
+        json={"content": "Alguma coisa"},
+        headers=headers,
+    ).json()["data"]
+    note_id = created["notes"][0]["id"]
+
+    deleted = client.delete(f"/api/v1/agenda/notes/{note_id}", headers=headers)
+
+    assert deleted.status_code == 200
+    assert deleted.json()["code"] == "AGENDA_NOTE_DELETED"
+    assert deleted.json()["data"] == {"id": note_id}
 
     summary = client.get(
         "/api/v1/agenda/summary",
@@ -75,6 +123,44 @@ def test_blank_note_removes_day_from_summary(client: TestClient, user_auth: dict
 
     assert summary.json()["data"] == []
     assert summary.json()["meta"]["total"] == 0
+
+
+def test_sets_day_sensitivity(client: TestClient, user_auth: dict) -> None:
+    headers = auth_headers(user_auth)
+
+    response = client.put(
+        "/api/v1/agenda/days/2026-10-20/sensitivity",
+        json={"sensitivity": "sigiloso"},
+        headers=headers,
+    )
+
+    assert response.status_code == 200
+    assert response.json()["code"] == "AGENDA_DAY_SENSITIVITY_SAVED"
+    assert response.json()["data"]["sensitivity"] == "sigiloso"
+    assert response.json()["data"]["notes"] == []
+
+
+def test_other_user_cannot_access_note(client: TestClient, user_auth: dict) -> None:
+    headers = auth_headers(user_auth)
+    created = client.post(
+        "/api/v1/agenda/days/2026-10-20/notes",
+        json={"content": "Privada"},
+        headers=headers,
+    ).json()["data"]
+    note_id = created["notes"][0]["id"]
+
+    other_headers = auth_headers(_register(client, "outro_nota"))
+
+    update = client.patch(
+        f"/api/v1/agenda/notes/{note_id}",
+        json={"content": "Invadida"},
+        headers=other_headers,
+    )
+    delete = client.delete(f"/api/v1/agenda/notes/{note_id}", headers=other_headers)
+
+    assert update.status_code == 404
+    assert update.json()["code"] == "AGENDA_NOTE_NOT_FOUND"
+    assert delete.status_code == 404
 
 
 def test_creates_activity_with_time_and_priority(client: TestClient, user_auth: dict) -> None:
@@ -154,9 +240,9 @@ def test_deletes_activity(client: TestClient, user_auth: dict) -> None:
 
 def test_summary_aggregates_days_and_priorities(client: TestClient, user_auth: dict) -> None:
     headers = auth_headers(user_auth)
-    client.put(
-        "/api/v1/agenda/days/2026-10-05/note",
-        json={"note": "Nota do dia"},
+    client.post(
+        "/api/v1/agenda/days/2026-10-05/notes",
+        json={"content": "Nota do dia"},
         headers=headers,
     )
     client.post(
@@ -193,6 +279,7 @@ def test_summary_aggregates_days_and_priorities(client: TestClient, user_auth: d
             "activities_done": 0,
             "highest_priority": "HIGH",
             "tags": [],
+            "holiday": None,
         },
         {
             "day": "2026-10-06",
@@ -201,6 +288,7 @@ def test_summary_aggregates_days_and_priorities(client: TestClient, user_auth: d
             "activities_done": 1,
             "highest_priority": "MEDIUM",
             "tags": [],
+            "holiday": None,
         },
     ]
 

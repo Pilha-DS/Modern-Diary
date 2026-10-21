@@ -3,7 +3,7 @@ from datetime import date
 from sqlalchemy import case, delete, func, select
 from sqlalchemy.orm import Session
 
-from app.models.agenda import AgendaActivity, AgendaDay, Priority
+from app.models.agenda import AgendaActivity, AgendaDay, AgendaNote, Priority
 from app.models.sensitivity import Sensitivity
 
 
@@ -31,17 +31,57 @@ class AgendaRepository:
     ) -> list[date]:
         return list(
             self.session.scalars(
-                select(AgendaDay.day)
+                select(AgendaNote.day)
                 .where(
-                    AgendaDay.user_id == user_id,
-                    AgendaDay.day >= start,
-                    AgendaDay.day <= end,
-                    AgendaDay.note.is_not(None),
-                    func.length(func.trim(AgendaDay.note)) > 0,
+                    AgendaNote.user_id == user_id,
+                    AgendaNote.day >= start,
+                    AgendaNote.day <= end,
+                    func.length(func.trim(AgendaNote.content)) > 0,
                     *(criteria or []),
                 )
-                .order_by(AgendaDay.day)
+                .distinct()
+                .order_by(AgendaNote.day)
             ).all()
+        )
+
+    def list_notes(
+        self,
+        user_id: int,
+        day: date,
+        criteria: list | None = None,
+    ) -> list[AgendaNote]:
+        return list(
+            self.session.scalars(
+                select(AgendaNote)
+                .where(
+                    AgendaNote.user_id == user_id,
+                    AgendaNote.day == day,
+                    *(criteria or []),
+                )
+                .order_by(AgendaNote.created_at, AgendaNote.id)
+            ).all()
+        )
+
+    def get_note(
+        self, user_id: int, note_id: int, criteria: list | None = None
+    ) -> AgendaNote | None:
+        return self.session.scalar(
+            select(AgendaNote).where(
+                AgendaNote.id == note_id,
+                AgendaNote.user_id == user_id,
+                *(criteria or []),
+            )
+        )
+
+    def count_notes(self, user_id: int, day: date) -> int:
+        return (
+            self.session.scalar(
+                select(func.count(AgendaNote.id)).where(
+                    AgendaNote.user_id == user_id,
+                    AgendaNote.day == day,
+                )
+            )
+            or 0
         )
 
     def day_levels(
@@ -132,21 +172,11 @@ class AgendaRepository:
             )
         )
 
-    def add(self, row: AgendaDay | AgendaActivity) -> None:
+    def add(self, row: AgendaDay | AgendaNote | AgendaActivity) -> None:
         self.session.add(row)
 
-    def remove(self, row: AgendaActivity) -> None:
+    def remove(self, row: AgendaActivity | AgendaNote) -> None:
         self.session.delete(row)
-
-    def remove_empty_day(self, user_id: int, day: date) -> None:
-        """Remove a linha do dia quando ela não tem nota nem atividades."""
-        self.session.execute(
-            delete(AgendaDay).where(
-                AgendaDay.user_id == user_id,
-                AgendaDay.day == day,
-                AgendaDay.note.is_(None),
-            )
-        )
 
     def delete_day(self, user_id: int, day: date) -> None:
         self.session.execute(

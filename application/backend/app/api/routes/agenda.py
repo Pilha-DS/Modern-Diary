@@ -7,13 +7,16 @@ from app.api.deps import get_actor
 from app.core.access import Actor
 from app.core.database import get_db
 from app.core.responses import api_response
-from app.models.agenda import AgendaDay
+from app.models.agenda import AgendaDay, AgendaNote
 from app.schemas.agenda import (
     ActivityCreateRequest,
     ActivityResponse,
     ActivityUpdateRequest,
+    DaySensitivityRequest,
     DayTagsRequest,
-    SaveNoteRequest,
+    NoteCreateRequest,
+    NoteResponse,
+    NoteUpdateRequest,
 )
 from app.services.agenda_service import AgendaService
 
@@ -22,21 +25,25 @@ router = APIRouter(prefix="/agenda", tags=["agenda"])
 
 def _day_payload(
     day: date,
-    note_row: AgendaDay | None,
+    day_row: AgendaDay | None,
+    notes: list[AgendaNote],
     activities: list,
     tags: list,
+    holiday: str | None = None,
 ) -> dict:
     return {
         "day": day.isoformat(),
-        "note": note_row.note if note_row else None,
-        "sensitivity": (
-            note_row.sensitivity.api_value if note_row else None
-        ),
+        "sensitivity": day_row.sensitivity.api_value if day_row else None,
+        "notes": [
+            NoteResponse.model_validate(note).model_dump(mode="json")
+            for note in notes
+        ],
         "activities": [
             ActivityResponse.model_validate(activity).model_dump(mode="json")
             for activity in activities
         ],
         "tags": [tag.model_dump(mode="json") for tag in tags],
+        "holiday": holiday,
     }
 
 
@@ -63,7 +70,7 @@ def summarize(
 @router.get(
     "/days/{day}",
     response_model=None,
-    summary="Nota e atividades de um dia",
+    summary="Nível, notas, atividades e tags de um dia",
 )
 def get_day(
     day: date,
@@ -71,30 +78,31 @@ def get_day(
     session: Session = Depends(get_db),
     actor: Actor = Depends(get_actor),
 ):
-    note_row, activities, tags = AgendaService(session, actor).get_day(day)
+    service = AgendaService(session, actor)
+    day_row, notes, activities, tags, holiday = service.get_day(day)
     return api_response(
         request,
         code="AGENDA_DAY_RETRIEVED",
-        data=_day_payload(day, note_row, activities, tags),
+        data=_day_payload(day, day_row, notes, activities, tags, holiday),
     )
 
 
-@router.put("/days/{day}/note", summary="Salva a nota do dia (markdown)")
-def save_note(
+@router.put("/days/{day}/sensitivity", summary="Define o nível do dia")
+def set_day_sensitivity(
     day: date,
-    payload: SaveNoteRequest,
+    payload: DaySensitivityRequest,
     request: Request,
     session: Session = Depends(get_db),
     actor: Actor = Depends(get_actor),
 ):
     service = AgendaService(session, actor)
-    service.save_note(day, payload.note, sensitivity=payload.sensitivity)
-    note_row, activities, tags = service.get_day(day)
+    service.set_day_sensitivity(day, payload.sensitivity)
+    day_row, notes, activities, tags, holiday = service.get_day(day)
     return api_response(
         request,
-        code="AGENDA_NOTE_SAVED",
-        data=_day_payload(day, note_row, activities, tags),
-        message="Nota salva com sucesso.",
+        code="AGENDA_DAY_SENSITIVITY_SAVED",
+        data=_day_payload(day, day_row, notes, activities, tags, holiday),
+        message="Nível do dia atualizado.",
     )
 
 
@@ -108,12 +116,73 @@ def set_day_tags(
 ):
     service = AgendaService(session, actor)
     service.set_day_tags(day, payload.tag_ids)
-    note_row, activities, tags = service.get_day(day)
+    day_row, notes, activities, tags, holiday = service.get_day(day)
     return api_response(
         request,
         code="AGENDA_DAY_TAGS_SAVED",
-        data=_day_payload(day, note_row, activities, tags),
+        data=_day_payload(day, day_row, notes, activities, tags, holiday),
         message="Tags do dia atualizadas.",
+    )
+
+
+@router.post(
+    "/days/{day}/notes",
+    status_code=201,
+    summary="Cria uma nota no dia",
+)
+def create_note(
+    day: date,
+    payload: NoteCreateRequest,
+    request: Request,
+    session: Session = Depends(get_db),
+    actor: Actor = Depends(get_actor),
+):
+    service = AgendaService(session, actor)
+    service.create_note(day, payload.content, sensitivity=payload.sensitivity)
+    day_row, notes, activities, tags, holiday = service.get_day(day)
+    return api_response(
+        request,
+        code="AGENDA_NOTE_CREATED",
+        data=_day_payload(day, day_row, notes, activities, tags, holiday),
+        message="Nota criada com sucesso.",
+        status_code=201,
+    )
+
+
+@router.patch("/notes/{note_id}", summary="Edita o conteúdo ou o nível de uma nota")
+def update_note(
+    note_id: int,
+    payload: NoteUpdateRequest,
+    request: Request,
+    session: Session = Depends(get_db),
+    actor: Actor = Depends(get_actor),
+):
+    note = AgendaService(session, actor).update_note(
+        note_id,
+        content=payload.content,
+        sensitivity=payload.sensitivity,
+    )
+    return api_response(
+        request,
+        code="AGENDA_NOTE_UPDATED",
+        data=NoteResponse.model_validate(note).model_dump(mode="json"),
+        message="Nota atualizada com sucesso.",
+    )
+
+
+@router.delete("/notes/{note_id}", summary="Exclui uma nota do dia")
+def delete_note(
+    note_id: int,
+    request: Request,
+    session: Session = Depends(get_db),
+    actor: Actor = Depends(get_actor),
+):
+    AgendaService(session, actor).delete_note(note_id)
+    return api_response(
+        request,
+        code="AGENDA_NOTE_DELETED",
+        data={"id": note_id},
+        message="Nota excluída com sucesso.",
     )
 
 

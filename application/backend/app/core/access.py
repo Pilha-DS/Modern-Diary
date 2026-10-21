@@ -81,6 +81,34 @@ class AccessGuard:
             )
         return criteria
 
+    def optional_visible_on(
+        self, area: Area, column: InstrumentedAttribute
+    ) -> list | None:
+        """Como [optional_visible], filtrando pela coluna de nível indicada.
+
+        A área pode ter mais de uma tabela (o dia e as notas dele): as duas
+        usam a permissão da área, cada uma com a própria coluna.
+        """
+        if self.actor.secret is None:
+            return []
+        permission = self.actor.secret.permission_for(area)
+        if permission is None:
+            return None
+        if permission.read_level is Sensitivity.ALL:
+            return []
+        return [column <= permission.read_level]
+
+    def visible_on(self, area: Area, column: InstrumentedAttribute) -> list:
+        criteria = self.optional_visible_on(area, column)
+        if criteria is None:
+            self._deny(
+                code="AREA_NOT_PERMITTED",
+                message="Esta credencial não tem acesso a esta área.",
+                area=area,
+                action=AuditAction.READ,
+            )
+        return criteria
+
     def read_level(self, area: Area) -> Sensitivity:
         """Nível máximo lido na área; 403 quando a secret não tem a área."""
         if self.actor.secret is None:

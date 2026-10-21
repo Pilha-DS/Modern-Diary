@@ -15,6 +15,7 @@ from sqlalchemy import (
     func,
     text,
 )
+from sqlalchemy.dialects.mysql import LONGTEXT
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
@@ -29,7 +30,11 @@ class Priority(StrEnum):
 
 
 class AgendaDay(Base):
-    """Nota do dia, escrita em markdown. Uma linha por usuário e data."""
+    """Registro do dia: nível de sensibilidade do dia e suas tags.
+
+    As notas ficam em [AgendaNote]; esta linha existe para guardar o nível do
+    dia mesmo quando não há conteúdo.
+    """
 
     __tablename__ = "agenda_days"
     __table_args__ = (
@@ -43,7 +48,46 @@ class AgendaDay(Base):
         nullable=False,
     )
     day: Mapped[date] = mapped_column(Date, nullable=False)
-    note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    sensitivity: Mapped[Sensitivity] = mapped_column(
+        SensitivityType(),
+        nullable=False,
+        default=Sensitivity.PUBLIC,
+        server_default=text("1"),
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime,
+        nullable=False,
+        default=utc_now,
+        server_default=func.current_timestamp(),
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime,
+        nullable=False,
+        default=utc_now,
+        onupdate=utc_now,
+        server_default=text("CURRENT_TIMESTAMP"),
+    )
+
+
+class AgendaNote(Base):
+    """Nota do dia, escrita em markdown. Um dia tem quantas notas precisar."""
+
+    __tablename__ = "agenda_notes"
+    __table_args__ = (
+        Index("ix_agenda_notes_user_day", "user_id", "day"),
+        Index("ix_agenda_notes_user_sensitivity", "user_id", "sensitivity"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    day: Mapped[date] = mapped_column(Date, nullable=False)
+    content: Mapped[str] = mapped_column(
+        Text().with_variant(LONGTEXT(), "mysql"),
+        nullable=False,
+    )
     sensitivity: Mapped[Sensitivity] = mapped_column(
         SensitivityType(),
         nullable=False,

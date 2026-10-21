@@ -278,6 +278,7 @@ def test_attaches_tags_to_a_day(client: TestClient, user_auth: dict) -> None:
                     "description": tag["description"],
                 }
             ],
+            "holiday": None,
         }
     ]
 
