@@ -1,0 +1,22 @@
+include:
+  - path: ./application/backend/docker-compose.yml
+    env_file: ./application/backend/.env
+    project_directory: ./application/backend
+
+services:
+  web:
+    build:
+      context: ./application/frontend
+      args:
+        # Vazio: o nginx do container encaminha /api para o servico "api".
+        API_BASE_URL: ${API_PUBLIC_URL:-}
+        # Rodape: vazio usa o padrao do app (application/frontend/app/lib/src/core/config/app_info.dart).
+        APP_AUTHOR_NAME: ${APP_AUTHOR_NAME:-}
+        APP_CONTACT_EMAIL: ${APP_CONTACT_EMAIL:-}
+        APP_AUTHOR_PHONE: ${APP_AUTHOR_PHONE:-}
+        APP_AUTHOR_SITE: ${APP_AUTHOR_SITE:-}
+        APP_VERSION: ${APP_VERSION:-}
+    ports:
+      - "${FRONTEND_PORT:-8080}:80"
+    depends_on:
+      - api
