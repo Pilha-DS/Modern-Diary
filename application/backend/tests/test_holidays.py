@@ -4,7 +4,7 @@ from datetime import date
 import pytest
 from fastapi.testclient import TestClient
 
-from app.core.errors import AppError
+from atena_pattern.core.errors import AppError
 from app.data import holidays as holiday_source
 from app.data.holidays import fetch_public_holidays
 from app.services import holiday_service

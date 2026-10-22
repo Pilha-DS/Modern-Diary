@@ -13,9 +13,9 @@ from sqlalchemy import create_engine  # noqa: E402
 from sqlalchemy.orm import Session, sessionmaker  # noqa: E402
 from sqlalchemy.pool import StaticPool  # noqa: E402
 
-from app.core.database import Base, get_db  # noqa: E402
+from atena_pattern.core.database import Base, get_db  # noqa: E402
 from app.main import app  # noqa: E402
-from app.models.system_state import SystemState  # noqa: E402
+from atena_pattern.models.system_state import SystemState  # noqa: E402
 
 engine = create_engine(
     "sqlite://",

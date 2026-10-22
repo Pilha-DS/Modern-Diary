@@ -2,13 +2,45 @@
 
 Sistema para ajudar no dia a dia: agenda, notas e ferramentas de estudo e de controle de coisas diárias.
 
+Este repositório é um **fork do [atena-pattern](https://github.com/Pilha-DS/atena-pattern)**: o padrão do ecossistema vive em `packages/` e o produto vive em `application/`.
+
+```text
+Modern-Diary/
+├── AGENTS.md             regras obrigatórias
+├── .cursor/rules/        regras do editor (versionadas)
+├── docs/                 arquitetura do padrão e plano do produto
+├── packages/
+│   ├── atena_pattern/    núcleo Python (envelope, sessão, credenciais, acesso)
+│   └── atena_ui/         package Flutter (tema, tokens, TOAT, widgets)
+├── application/
+│   ├── backend/          API do Modern Diary (FastAPI + Alembic + Dockerfile)
+│   └── frontend/         app do Modern Diary (Flutter + Dockerfile + nginx)
+├── docker-compose.yml    banco, API e app
+├── .env.example          variáveis do compose
+└── Makefile              atalhos (up, down, logs, migrate, test)
+```
+
+- **Transversal** → `packages/`: envelope, sessão JWT, credenciais de integração, motor de permissões por área, tema, TOAT e componentes. Não conhece o domínio.
+- **Produto** → `application/`: agenda, notas, conhecimentos, metas, tags, busca, auditoria e o que é do Modern Diary.
+- **Núcleo é dependência por caminho**: mexer em `packages/atena_pattern` reflete na API sem reinstalar, e o `pubspec.yaml` aponta para `packages/atena_ui`.
+
 **Back** — Python com FastAPI. Separação lógica por usuário, SQLAlchemy para persistência e Alembic para versionamento do banco. Os endpoints ficam documentados em `<endereço>/docs`.
 
 **Front** — Flutter, para suporte a várias plataformas.
 
 **Conexões** — Front em `http://localhost:8080`, API em `http://localhost:8000` e MySQL em `localhost:3306`.
 
+## Começar
+
+```bash
+make env     # cria .env a partir do .env.example (ajuste SECRET_KEY e senhas)
+make up      # banco + API + app
+```
+
+`make logs` acompanha, `make migrate` aplica migration no container, `make down` para e `make clean` apaga o volume do banco. A API roda `alembic upgrade head` no start, então banco novo já sobe migrado. `make test` roda pytest do núcleo e da API, mais `flutter test` do package e do app.
+
 > Status: base pronta — backend com cadastro, login JWT, roles, migrations e envelope único; front Flutter com agenda completa (notas do dia em markdown, atividades por dia e visão anual de calendário), notas em markdown com editor e prévia, metas com etapas e progresso, conhecimentos com conexões em rede e metas ligadas, tags compartilhadas entre conhecimentos, metas e dias, sessão e lista de usuários do ADMIN.
+
 
 ## Agenda
 
@@ -19,7 +51,7 @@ A agenda é um conjunto de dias, onde é possível colocar notas, atividades e m
 - **Dia (modal)**: a ordem é sempre data e dia da semana, nível do dia e tags, notas e atividades. As notas aparecem recolhidas em cartões com a primeira linha e a contagem de palavras; o clique (ou o hover) revela o conteúdo renderizado. No modo de edição, cada cartão ganha os botões de editar e excluir: editar abre o `MarkdownEditor` já no texto puro, com o nível de sensibilidade da nota no mesmo formulário.
 - **Metas**: lista em três colunas, doze por página. Cada meta tem título, descrição e prazo opcionais, etapas opcionais, barra de progresso com a contagem `x/y`, e ações de concluir, reabrir, arquivar, desarquivar, editar e excluir.
 - **Navegação**: a bola central abre o menu orbital com as abas (Início, Pesquisar, Calendário, Notas, Metas, Conhecimentos, Live graph, Tags, Credenciais, Usuários para ADMIN, Ajustes e Sair). O item Início fica no centro do arco. Os itens são só ícones, agrupados sem nome; ao ficar 2s sobre um deles aparece o nome no tooltip. Cada item usa a superfície invertida do tema (claro no escuro, escuro no claro) para destacar o menu, e o item da aba atual fica na cor da identidade. O logo no header leva de volta para Início. A **Pesquisa universal** também abre pelo ícone no header e pela tecla `Q`.
-- **Header e rodapé**: o header tem a identidade do app, o ícone da pesquisa universal e o avatar do usuário; o avatar abre um menu escondido com as configurações básicas (tema, foto, nacionalidade, localidade e telefone), também acessíveis em **Ajustes** no menu orbital. A nacionalidade é escolhida na tabela `countries` por um modal com busca por nome, sigla ou código ISO e carregamento sob demanda. Em **Ajustes**, o botão **Puxar feriados** baixa os feriados do ano (país da nacionalidade) e os guarda no banco; sem nacionalidade, ele pede que o usuário escolha uma antes. O rodapé mostra quem fez o projeto, o contato e a versão, configurados em build (`APP_AUTHOR_NAME`, `APP_CONTACT_EMAIL`, `APP_AUTHOR_PHONE`, `APP_AUTHOR_SITE`, `APP_VERSION`) — vazios usam o padrão em `application/frontend/app/lib/src/core/config/app_info.dart`. Toda tela tem a altura mínima da área visível, então o rodapé só aparece depois de rolar.
+- **Header e rodapé**: o header tem a identidade do app, o ícone da pesquisa universal e o avatar do usuário; o avatar abre um menu escondido com as configurações básicas (tema, foto, nacionalidade, localidade e telefone), também acessíveis em **Ajustes** no menu orbital. A nacionalidade é escolhida na tabela `countries` por um modal com busca por nome, sigla ou código ISO e carregamento sob demanda. Em **Ajustes**, o botão **Puxar feriados** baixa os feriados do ano (país da nacionalidade) e os guarda no banco; sem nacionalidade, ele pede que o usuário escolha uma antes. O rodapé mostra quem fez o projeto, o contato e a versão, configurados em build (`APP_AUTHOR_NAME`, `APP_CONTACT_EMAIL`, `APP_AUTHOR_PHONE`, `APP_AUTHOR_SITE`, `APP_VERSION`) — vazios usam o padrão em `application/frontend/lib/src/core/config/app_info.dart`. Toda tela tem a altura mínima da área visível, então o rodapé só aparece depois de rolar.
 - **Cartões**: listas de notas, conhecimentos, metas e credenciais usam o mesmo grid (`AppCardGrid`): colunas calculadas pela largura e **cartões da mesma linha com a mesma altura**.
 
 ## Notas
@@ -138,16 +170,16 @@ Tags organizam conhecimentos, metas e dias do mês com uma relação N:M.
 A estrutura lógica não define a estrutura de pastas final, somente a estrutura para a construção da lógica do software.
 
 ```js
-MD - Raiz
-  application/ - Frontend e Backend
+MD - Raiz (fork do atena-pattern)
+  packages/ - O que é transversal, não conhece o produto
+    atena_pattern/ - Núcleo Python: envelope, sessão, usuários, credenciais e permissões por área
+    atena_ui/ - Tema, tokens, TOAT, componentes e níveis de sensibilidade (Flutter)
+  application/ - O produto: frontend e backend
     backend/ - Regras de negócio, modelos, persistência e o que o usuário não pode alterar
       app/ - Código fonte
     frontend/ - Parte visual, onde o usuário tem acesso irrestrito
-      app/ - Código fonte (web)
-        src/ - Lógica do front
-        Package/ - Pacotes reutilizáveis
-  docs/ - Todos os documentos
-    structure/ - Documentos estruturais
+      lib/src/ - Lógica do front
+  docs/ - Documentação do padrão e do produto
     PLAN. - Indica o que será feito (a IA deve desconsiderar este arquivo)
   AGENTS. - Regras de desenvolvimento do software
   README. - Sobre o projeto, como rodar e etc.
@@ -158,10 +190,10 @@ MD - Raiz
 ```text
 application/backend/
   app/
-    api/          - Rotas e dependências HTTP (auth, users, secrets, agenda, metas, conhecimentos, tags, notas, países e feriados)
-    core/         - Configuração, banco, segurança, erros e envelope
+    api/          - Rotas e dependências HTTP do domínio (agenda, metas, conhecimentos, tags, notas, países, feriados, busca e auditoria)
+    core/         - Configuração do projeto e registro das áreas de acesso
     data/         - Catálogos e fontes externas lidas pelo back (países e feriados)
-    models/       - Tabelas SQLAlchemy
+    models/       - Tabelas SQLAlchemy do domínio
     repositories/ - Acesso ao banco
     schemas/      - Entrada e saída validada por Pydantic
     services/     - Regras de negócio
@@ -169,17 +201,18 @@ application/backend/
   tests/          - Testes de regra de negócio e de API
 ```
 
+Rotas de sessão, usuários e credenciais (`/auth`, `/users`, `/secrets`), envelope, erros e o motor de permissões vêm de `packages/atena_pattern`. As áreas protegidas do Modern Diary são registradas em `app/core/areas.py`.
+
 ### Como rodar com Docker (recomendado)
 
 Na raiz do projeto:
 
 ```bash
-cp application/backend/.env.example application/backend/.env
-docker compose up -d --build
+make env     # cria .env a partir do .env.example
+make up      # banco + API + app
 ```
 
-O `docker-compose.yml` da raiz inclui o do backend, então o comando funciona tanto na raiz
-quanto em `application/backend`. Sobe três serviços:
+Sobe três serviços:
 
 | Serviço | Endereço padrão | O que é |
 | --- | --- | --- |
@@ -194,15 +227,14 @@ baixa o SDK do Flutter e demora alguns minutos; os seguintes usam o cache das ca
 O `api` espera o MySQL ficar saudável e roda `alembic upgrade head` antes de subir o
 servidor.
 
-Se a porta `8000`, `3306` ou `8080` já estiver em uso, defina `API_PORT`, `MYSQL_PORT`
-(no `application/backend/.env`) e `FRONTEND_PORT` (variável de ambiente ou arquivo `.env`
-na raiz). Acesse então o front na porta escolhida. Use `docker compose down` para parar e
-`docker compose down -v` para apagar também o volume do MySQL.
+Se a porta `8000`, `3306` ou `8080` já estiver em uso, ajuste `API_PORT`, `MYSQL_PORT` e
+`FRONTEND_PORT` no `.env` da raiz. Use `make down` para parar e `make clean` para apagar
+também o volume do MySQL.
 
 Para apontar o front para uma API em outro endereço (fora do compose), informe no build:
 
 ```bash
-API_PUBLIC_URL=https://api.exemplo.com docker compose build web
+API_PUBLIC_URL=https://api.exemplo.com make build
 ```
 
 ### Como rodar local (sem Docker)
@@ -446,21 +478,22 @@ Os testes usam SQLite em memória e cobrem o cadastro inicial, login, envelope, 
 
 ```text
 application/frontend/
-  app/                          - Aplicativo Flutter (web, linux, android)
-    lib/
-      src/
-        core/                   - Configuração, cliente HTTP, strings e sessão
-        features/
-          auth/                 - Login, cadastro, sessão e usuário
-          goals/                - Metas com etapas, progresso e arquivo
-          home/                 - Tela inicial
-          knowledge/            - Conhecimentos, links, anexos e rede em grafo
-          notes/                - Notas em markdown, com editor, prévia e busca
-          users/                - Lista paginada de usuários do ADMIN
-    test/                       - Testes de widget e do cliente HTTP
-  packages/
-    modern_diary_ui/            - Tema, tokens, componentes e TOAT reutilizáveis
+  lib/
+    src/
+      core/                   - Configuração, cliente HTTP, strings, tema da marca e sessão
+      features/
+        auth/                 - Login, cadastro, sessão e usuário
+        goals/                - Metas com etapas, progresso e arquivo
+        home/                 - Tela inicial
+        knowledge/            - Conhecimentos, links, anexos e rede em grafo
+        notes/                - Notas em markdown, com editor, prévia e busca
+        users/                - Lista paginada de usuários do ADMIN
+  test/                       - Testes de widget e do cliente HTTP
 ```
+
+Tema, tokens, componentes, TOAT e níveis de sensibilidade vêm de
+`packages/atena_ui`. O app só mantém o que é do domínio: telas, controllers, strings e a
+paleta da marca.
 
 O app não decide regra de negócio: cadastro, roles e paginação vêm da API. O token é
 enviado em `Authorization: Bearer` e guardado em `shared_preferences`; ao abrir, o app
@@ -476,7 +509,7 @@ Arch, defina também `CHROME_EXECUTABLE=/usr/bin/google-chrome-stable` para o
 `flutter run -d chrome` enxergar o navegador.
 
 ```bash
-cd application/frontend/app
+cd application/frontend
 flutter pub get
 flutter run -d chrome --dart-define=API_BASE_URL=http://localhost:8000
 ```
@@ -499,17 +532,17 @@ O build do Flutter é feito uma vez e servido como arquivo estático em produç�
 ### Testes
 
 ```bash
-cd application/frontend/app
+cd application/frontend
 flutter analyze
 flutter test
 
-cd ../packages/modern_diary_ui
+cd ../../packages/atena_ui
 flutter analyze
 flutter test
 ```
 
-Os exemplos de uso dos componentes do package estão em
-[`application/frontend/packages/modern_diary_ui/README.md`](application/frontend/packages/modern_diary_ui/README.md).
+O package `atena_ui` documenta os componentes reutilizáveis em
+[`packages/atena_ui/README.md`](packages/atena_ui/README.md).
 
 ## Credenciais de teste
 

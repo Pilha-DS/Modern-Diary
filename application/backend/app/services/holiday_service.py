@@ -2,7 +2,7 @@ from datetime import date
 
 from sqlalchemy.orm import Session
 
-from app.core.errors import AppError
+from atena_pattern.core.errors import AppError
 from app.data.holidays import ENABLED_COUNTRIES, fetch_public_holidays, is_enabled
 from app.models.holiday import Holiday
 from app.repositories.holiday_repository import HolidayRepository

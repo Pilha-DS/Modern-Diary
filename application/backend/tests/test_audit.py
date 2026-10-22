@@ -2,7 +2,7 @@ from datetime import date, datetime, timedelta, timezone
 
 from fastapi.testclient import TestClient
 
-from app.core.request_context import (
+from atena_pattern.core.request_context import (
     client_day,
     reset_client_offset_minutes,
     set_client_offset_minutes,

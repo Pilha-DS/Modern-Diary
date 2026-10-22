@@ -1,0 +1,39 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "atena-pattern"
+version = "0.1.0"
+description = "Núcleo reutilizável do ecossistema Atena: envelope, sessão, permissões por área e credenciais."
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "GPL-3.0-or-later" }
+dependencies = [
+    "argon2-cffi>=23.1",
+    "cryptography>=43.0",
+    "fastapi>=0.115",
+    "pydantic-settings>=2.6",
+    "pyjwt>=2.10",
+    "python-multipart>=0.0.18",
+    "sqlalchemy>=2.0.36",
+]
+
+[project.optional-dependencies]
+mysql = ["pymysql>=1.1"]
+
+# `uv sync` já instala o grupo de desenvolvimento: `make test` funciona em clone novo.
+[dependency-groups]
+dev = [
+    "alembic>=1.14",
+    "httpx>=0.27",
+    "pytest>=8.3",
+    "uvicorn[standard]>=0.32",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["atena_pattern"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

@@ -2,8 +2,8 @@ from datetime import datetime
 
 from pydantic import BaseModel, Field, field_validator
 
-from app.models.sensitivity import Sensitivity
-from app.schemas.sensitivity import DataLevel
+from atena_pattern.models.sensitivity import Sensitivity
+from atena_pattern.schemas.sensitivity import DataLevel
 
 MAX_TITLE_LENGTH = 160
 MAX_CONTENT_LENGTH = 50000

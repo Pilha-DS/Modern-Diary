@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends, Request
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_current_user
-from app.core.database import get_db
-from app.core.responses import api_response
-from app.models.user import User
+from atena_pattern.api.deps import get_current_user
+from atena_pattern.core.database import get_db
+from atena_pattern.core.responses import api_response
+from atena_pattern.models.user import User
 from app.schemas.holiday import HolidayResponse, HolidaySyncRequest
 from app.services.holiday_service import HolidayService
 

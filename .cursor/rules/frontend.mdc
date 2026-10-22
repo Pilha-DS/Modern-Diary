@@ -1,0 +1,27 @@
+---
+description: Regras de frontend (Flutter, atena_ui)
+globs: packages/atena_ui/**/*.dart, application/frontend/**/*.dart
+alwaysApply: false
+---
+
+# Frontend
+
+Leia `AGENTS.md` (seção Front) e `docs/FRONTEND.md` antes de editar.
+
+- Antes de criar widget, procure no `atena_ui`. Se não existir e for
+  reutilizável, crie no package — não no app.
+- Cor, espaçamento e duração só por token do tema. Se faltar, crie o token.
+- O package não faz HTTP, não acessa armazenamento, não conhece idioma nem marca.
+  Dado entra por parâmetro, evento sai por callback.
+- Identidade (paleta, ícone, textos) vem do projeto: `AppTheme.light(palette: ...)`
+  e `AppLogo(icon: ...)`.
+- Toda notificação sai pelo TOAT (`ToatHost`). Erro que exige decisão vai no
+  formulário, não no TOAT.
+- Lista é paginada: lê `meta`, busca próxima página sob demanda, cobre carregando,
+  vazio, erro e sucesso com `StatusView`. Nunca `data.length` como total.
+- Cliente HTTP fica no app (`core/network`), lê o envelope e lança `ApiException`
+  pelo `code`. Tela decide pelo `code`, nunca pelo texto.
+- Texto visível no arquivo de strings; ícone e botão com rótulo semântico.
+- Feature não importa outra feature.
+
+Antes de finalizar: `flutter analyze` limpo e `flutter test` verde.

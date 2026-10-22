@@ -1,7 +1,7 @@
 from sqlalchemy import CHAR, Index, String
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.core.database import Base
+from atena_pattern.core.database import Base
 
 
 class Country(Base):

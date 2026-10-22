@@ -1,0 +1,17 @@
+---
+description: Regras de documentação e padrão
+globs: docs/**, AGENTS.md, README.md, .cursor/**
+alwaysApply: false
+---
+
+# Documentação
+
+- Documentação em português; identificadores de código em inglês.
+- Exemplo de código na doc precisa rodar como está. Caminho de instalação,
+  variável de ambiente e nome de comando têm de existir.
+- Mudança de padrão entra em `AGENTS.md` ou `docs/` **junto** com a mudança de
+  código. Documentação que descreve o que o código não faz é bug.
+- Documento novo só quando o assunto não cabe em `PATTERN.md`, `BACKEND.md`,
+  `FRONTEND.md` ou `CHECKLIST.md`.
+- Template é ponto de partida: copiado, pertence ao projeto. Correção que vale
+  para todos volta para o package, para o núcleo ou para a base.

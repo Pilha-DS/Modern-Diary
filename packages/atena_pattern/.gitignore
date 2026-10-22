@@ -1,0 +1,15 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+*.db
+*.sqlite3
+
+# Ambiente (nunca versionar)
+.env
+.env.*
+!.env.example
+
+# Libraries não versionam lock: quem resolve é a app.
+uv.lock

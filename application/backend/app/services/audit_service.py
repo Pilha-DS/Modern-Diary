@@ -3,10 +3,10 @@ from datetime import date
 
 from sqlalchemy.orm import Session
 
-from app.core.errors import AppError
-from app.core.request_context import client_day
+from atena_pattern.core.errors import AppError
+from atena_pattern.core.request_context import client_day
 from app.models.audit import AuditArea, AuditEvent, AuditKind
-from app.models.user import utc_now
+from atena_pattern.models.user import utc_now
 from app.repositories.audit_repository import AuditRepository
 from app.schemas.audit import (
     AuditDayResponse,

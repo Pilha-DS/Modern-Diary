@@ -9,7 +9,7 @@ from app.models.goal import Goal, GoalStatus
 from app.models.knowledge import KnowledgeGoalLink, KnowledgeItem, KnowledgeRelation
 from app.models.life_link import EntityLink, LinkType
 from app.models.note import Note
-from app.models.sensitivity import Sensitivity
+from atena_pattern.models.sensitivity import Sensitivity
 
 
 @dataclass(frozen=True)

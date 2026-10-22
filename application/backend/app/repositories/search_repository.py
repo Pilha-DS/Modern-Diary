@@ -7,7 +7,7 @@ from app.models.agenda import AgendaActivity, AgendaNote
 from app.models.goal import Goal
 from app.models.knowledge import KnowledgeItem
 from app.models.note import Note
-from app.models.sensitivity import Sensitivity
+from atena_pattern.models.sensitivity import Sensitivity
 from app.models.tag import Tag, TagLink, TagTarget
 
 #: Tamanho da prévia devolvida na pesquisa.

@@ -2,7 +2,7 @@ from datetime import date
 
 from sqlalchemy.orm import Session
 
-from app.core.errors import AppError
+from atena_pattern.core.errors import AppError
 from app.models.audit import AuditArea, AuditKind
 from app.models.tag import Tag, TagTarget
 from app.repositories.tag_repository import TagRepository

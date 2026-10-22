@@ -1,11 +1,11 @@
 from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_actor
-from app.core.access import Actor
-from app.core.database import get_db
-from app.core.errors import AppError
-from app.core.responses import api_response
+from atena_pattern.api.deps import get_actor
+from atena_pattern.core.access import Actor
+from atena_pattern.core.database import get_db
+from atena_pattern.core.errors import AppError
+from atena_pattern.core.responses import api_response
 from app.models.life_link import LinkType
 from app.schemas.life import LifeLinkRequest
 from app.services.life_service import MAX_NODES_PER_TYPE, LifeService

@@ -10,7 +10,7 @@ import urllib.error
 import urllib.request
 from typing import Any
 
-from app.core.errors import AppError
+from atena_pattern.core.errors import AppError
 
 SOURCE_URL = "https://date.nager.at/api/v3/PublicHolidays"
 SOURCE_TIMEOUT_SECONDS = 10

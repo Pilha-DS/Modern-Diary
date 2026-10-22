@@ -3,13 +3,13 @@ from datetime import date
 from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_current_user
-from app.core.database import get_db
-from app.core.responses import api_response
+from atena_pattern.api.deps import get_current_user
+from atena_pattern.core.database import get_db
+from atena_pattern.core.responses import api_response
 from app.models.audit import AuditEvent
-from app.models.user import User
+from atena_pattern.models.user import User
 from app.schemas.audit import AuditEntityResponse, AuditEventResponse
-from app.schemas.pagination import PageParams, pagination_meta
+from atena_pattern.schemas.pagination import PageParams, pagination_meta
 from app.services.audit_service import MAX_GRAPH_EVENTS, AuditService
 
 router = APIRouter(prefix="/audit", tags=["audit"])

@@ -3,9 +3,10 @@ from logging.config import fileConfig
 from alembic import context
 from sqlalchemy import engine_from_config, pool
 
-from app import models  # noqa: F401  (registra as tabelas no metadata)
-from app.core.config import get_settings
-from app.core.database import Base
+import app.models  # noqa: F401  (registra as tabelas do projeto)
+import atena_pattern.models  # noqa: F401  (registra as tabelas do núcleo)
+from app.core.config import Settings
+from atena_pattern import Base
 
 config = context.config
 
@@ -14,7 +15,7 @@ if config.config_file_name is not None:
 
 config.set_main_option(
     "sqlalchemy.url",
-    get_settings().database_url.replace("%", "%%"),
+    Settings().database_url.replace("%", "%%"),
 )
 
 target_metadata = Base.metadata

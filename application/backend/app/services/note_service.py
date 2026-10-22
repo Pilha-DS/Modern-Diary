@@ -1,13 +1,13 @@
 from sqlalchemy.orm import Session
 
-from app.core.access import AccessGuard, Actor
-from app.core.errors import AppError
-from app.models.api_secret import AuditAction
-from app.models.area import Area
+from atena_pattern.core.access import AccessGuard, Actor
+from atena_pattern.core.errors import AppError
+from atena_pattern.models.api_secret import AuditAction
+from app.core.areas import Area
 from app.models.audit import AuditArea, AuditKind
 from app.models.note import Note
 from app.models.life_link import LinkType
-from app.models.sensitivity import Sensitivity
+from atena_pattern.models.sensitivity import Sensitivity
 from app.repositories.life_repository import LifeRepository
 from app.repositories.note_repository import NoteRepository
 from app.schemas.note import MAX_NOTES_PER_USER

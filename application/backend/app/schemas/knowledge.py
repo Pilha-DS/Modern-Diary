@@ -2,8 +2,8 @@ from datetime import datetime
 
 from pydantic import BaseModel, Field, field_validator
 
-from app.models.sensitivity import Sensitivity
-from app.schemas.sensitivity import DataLevel
+from atena_pattern.models.sensitivity import Sensitivity
+from atena_pattern.schemas.sensitivity import DataLevel
 from app.schemas.tag import MAX_TAGS_PER_TARGET, TagSummary
 
 MAX_TITLE_LENGTH = 160

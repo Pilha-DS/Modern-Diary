@@ -5,9 +5,9 @@ ARG FLUTTER_VERSION=3.47.7
 FROM debian:bookworm-slim AS build
 
 ARG FLUTTER_VERSION
-# Vazio usa a propria origem: o nginx do container faz proxy de /api para o servico "api".
+# Vazio usa a própria origem: o nginx do container encaminha /api para o serviço "api".
 ARG API_BASE_URL=""
-# Dados do rodape; vazios caem no padrao definido em lib/src/core/config/app_info.dart.
+# Dados do rodapé; vazios caem no padrão definido em lib/src/core/config/app_info.dart.
 ARG APP_AUTHOR_NAME
 ARG APP_CONTACT_EMAIL
 ARG APP_AUTHOR_PHONE
@@ -29,14 +29,15 @@ RUN curl -fsSL "https://storage.googleapis.com/flutter_infra_release/releases/st
 
 WORKDIR /src
 
-COPY packages/modern_diary_ui ./packages/modern_diary_ui
-COPY app/pubspec.yaml app/pubspec.lock ./app/
+# Estrutura preservada: o pubspec aponta para ../../packages/atena_ui.
+COPY packages/atena_ui /src/packages/atena_ui
+COPY application/frontend/pubspec.yaml application/frontend/pubspec.lock /src/application/frontend/
 
-WORKDIR /src/app
+WORKDIR /src/application/frontend
 RUN flutter pub get
 
-COPY app/lib ./lib
-COPY app/web ./web
+COPY application/frontend/lib ./lib
+COPY application/frontend/web ./web
 RUN flutter build web --release \
       --dart-define=API_BASE_URL="$API_BASE_URL" \
       --dart-define=APP_AUTHOR_NAME="$APP_AUTHOR_NAME" \
@@ -47,7 +48,7 @@ RUN flutter build web --release \
 
 FROM nginx:1.27-alpine
 
-COPY nginx.conf /etc/nginx/conf.d/default.conf
-COPY --from=build /src/app/build/web /usr/share/nginx/html
+COPY application/frontend/nginx.conf /etc/nginx/conf.d/default.conf
+COPY --from=build /src/application/frontend/build/web /usr/share/nginx/html
 
 EXPOSE 80

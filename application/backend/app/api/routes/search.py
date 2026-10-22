@@ -3,13 +3,13 @@ from datetime import date
 from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_actor
-from app.core.access import Actor
-from app.core.database import get_db
-from app.core.errors import AppError
-from app.core.responses import api_response
-from app.models.sensitivity import Sensitivity
-from app.schemas.pagination import PageParams, pagination_meta
+from atena_pattern.api.deps import get_actor
+from atena_pattern.core.access import Actor
+from atena_pattern.core.database import get_db
+from atena_pattern.core.errors import AppError
+from atena_pattern.core.responses import api_response
+from atena_pattern.models.sensitivity import Sensitivity
+from atena_pattern.schemas.pagination import PageParams, pagination_meta
 from app.schemas.search import SearchType
 from app.services.search_service import SearchService
 

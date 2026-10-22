@@ -3,8 +3,8 @@ from datetime import date, datetime
 from sqlalchemy import CHAR, Date, DateTime, ForeignKey, Index, String, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.core.database import Base
-from app.models.user import utc_now
+from atena_pattern.core.database import Base
+from atena_pattern.models.user import utc_now
 
 
 class Holiday(Base):

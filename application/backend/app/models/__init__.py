@@ -1,12 +1,15 @@
+"""Modelos do Modern Diary.
+
+Importar este pacote registra no metadata do núcleo (`atena_pattern.Base`) as
+tabelas do projeto e as tabelas herdadas, na ordem em que as chaves estrangeiras
+precisam existir.
+"""
+
+# Núcleo: usuários, papéis, credenciais, sensibilidade e estado do sistema.
+import atena_pattern.models  # noqa: F401
+
+from app.core.areas import Area  # noqa: F401  (áreas do projeto)
 from app.models.agenda import AgendaActivity, AgendaDay, AgendaNote, Priority
-from app.models.api_secret import (
-    ApiSecret,
-    AuditAction,
-    AuditResult,
-    SecretAreaPermission,
-    SecretAuditLog,
-)
-from app.models.area import Area
 from app.models.audit import AuditArea, AuditEvent, AuditKind
 from app.models.country import Country
 from app.models.goal import Goal, GoalStatus, GoalStep
@@ -20,23 +23,16 @@ from app.models.knowledge import (
 )
 from app.models.life_link import EntityLink, LinkType
 from app.models.note import Note
-from app.models.role import Role
-from app.models.sensitivity import Sensitivity
-from app.models.system_state import SystemState
 from app.models.tag import Tag, TagLink, TagTarget
-from app.models.user import User
 
 __all__ = [
     "AgendaActivity",
     "AgendaDay",
     "AgendaNote",
-    "ApiSecret",
     "Area",
-    "AuditAction",
     "AuditArea",
     "AuditEvent",
     "AuditKind",
-    "AuditResult",
     "Country",
     "EntityLink",
     "Goal",
@@ -51,13 +47,7 @@ __all__ = [
     "LinkType",
     "Note",
     "Priority",
-    "Role",
-    "SecretAreaPermission",
-    "SecretAuditLog",
-    "Sensitivity",
-    "SystemState",
     "Tag",
     "TagLink",
     "TagTarget",
-    "User",
 ]

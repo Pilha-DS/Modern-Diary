@@ -16,9 +16,9 @@ from sqlalchemy import (
 from sqlalchemy.dialects.mysql import LONGBLOB
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.core.database import Base
-from app.models.sensitivity import Sensitivity, SensitivityType
-from app.models.user import utc_now
+from atena_pattern.core.database import Base
+from atena_pattern.models.sensitivity import Sensitivity, SensitivityType
+from atena_pattern.models.user import utc_now
 
 
 class KnowledgeItem(Base):

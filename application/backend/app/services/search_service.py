@@ -2,13 +2,13 @@ from datetime import date
 
 from sqlalchemy.orm import Session
 
-from app.core.access import AccessGuard, Actor
+from atena_pattern.core.access import AccessGuard, Actor
 from app.models.agenda import AgendaActivity, AgendaNote
-from app.models.area import Area
+from app.core.areas import Area
 from app.models.goal import Goal
 from app.models.knowledge import KnowledgeItem
 from app.models.note import Note
-from app.models.sensitivity import Sensitivity
+from atena_pattern.models.sensitivity import Sensitivity
 from app.repositories.search_repository import SearchRepository
 from app.schemas.search import SearchResultResponse, SearchType
 

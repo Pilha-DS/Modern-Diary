@@ -1,0 +1,33 @@
+# O contexto é a raiz do repositório: o build precisa de packages/ e application/.
+
+# Ambiente e artefatos locais
+**/.env
+**/.env.*
+!**/.env.example
+**/.venv
+**/__pycache__
+**/*.py[cod]
+**/.pytest_cache
+**/*.db
+**/*.sqlite3
+
+# Flutter/Dart
+**/.dart_tool
+**/build
+**/.flutter-plugins
+**/.flutter-plugins-dependencies
+**/coverage
+
+# Testes e docs não entram na imagem
+**/tests
+**/test
+
+# Versionamento e editores
+.git
+.gitignore
+**/.idea
+**/.vscode
+**/*.iml
+docs
+LICENSE
+README.md

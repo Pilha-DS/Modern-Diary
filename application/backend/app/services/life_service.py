@@ -2,12 +2,12 @@ from datetime import date, datetime
 
 from sqlalchemy.orm import Session
 
-from app.core.access import AccessGuard, Actor
-from app.core.errors import AppError
-from app.models.area import Area
+from atena_pattern.core.access import AccessGuard, Actor
+from atena_pattern.core.errors import AppError
+from app.core.areas import Area
 from app.models.audit import AuditArea, AuditKind
 from app.models.life_link import EntityLink, LinkType
-from app.models.sensitivity import Sensitivity
+from atena_pattern.models.sensitivity import Sensitivity
 from app.repositories.life_repository import LifeEntityRow, LifeRepository
 from app.schemas.life import LifeEdge, LifeGraphResponse, LifeLinkRequest, LifeNode
 from app.services.audit_service import AuditRef, AuditService

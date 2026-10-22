@@ -4,8 +4,8 @@ from enum import StrEnum
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.models.goal import Goal, GoalStatus, GoalStep
-from app.models.sensitivity import Sensitivity
-from app.schemas.sensitivity import DataLevel
+from atena_pattern.models.sensitivity import Sensitivity
+from atena_pattern.schemas.sensitivity import DataLevel
 from app.schemas.tag import MAX_TAGS_PER_TARGET, TagSummary
 
 MAX_STEPS_PER_GOAL = 50

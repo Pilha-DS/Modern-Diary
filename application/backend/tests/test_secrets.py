@@ -4,7 +4,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.models.api_secret import ApiSecret
+from atena_pattern.models.api_secret import ApiSecret
 from tests.conftest import auth_headers
 
 

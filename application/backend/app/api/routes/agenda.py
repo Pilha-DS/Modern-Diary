@@ -3,10 +3,10 @@ from datetime import date
 from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_actor
-from app.core.access import Actor
-from app.core.database import get_db
-from app.core.responses import api_response
+from atena_pattern.api.deps import get_actor
+from atena_pattern.core.access import Actor
+from atena_pattern.core.database import get_db
+from atena_pattern.core.responses import api_response
 from app.models.agenda import AgendaDay, AgendaNote
 from app.schemas.agenda import (
     ActivityCreateRequest,

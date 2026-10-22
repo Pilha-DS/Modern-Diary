@@ -1,0 +1,22 @@
+---
+alwaysApply: true
+---
+
+# Padrão Atena
+
+Antes de construir, ler nesta ordem:
+
+1. `README.md` — o que é transversal (`packages/`), o que é produto (`application/`) e o modelo de fork;
+2. `AGENTS.md` — as regras obrigatórias;
+3. `docs/PATTERN.md` — arquitetura e decisões.
+
+Ordem de precedência em caso de conflito: `AGENTS.md`, decisão explícita do
+usuário para o caso, `docs/`, código existente. Divergência não é resolvida em
+silêncio: mostre as opções antes de agir.
+
+Regra de ouro: o que é transversal vai para `atena_pattern` ou `atena_ui`; o que
+é domínio fica no projeto que consome. Não copie módulo transversal para dentro
+do produto.
+
+- Não faça commit, push, PR ou merge sem pedido explícito.
+- Não versione `.venv/`, `build/`, `.dart_tool/`, `.env` nem artefato gerado.

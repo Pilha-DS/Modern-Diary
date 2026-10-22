@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_actor
-from app.core.access import Actor
-from app.core.database import get_db
-from app.core.responses import api_response
+from atena_pattern.api.deps import get_actor
+from atena_pattern.core.access import Actor
+from atena_pattern.core.database import get_db
+from atena_pattern.core.responses import api_response
 from app.schemas.goal import (
     GoalCreateRequest,
     GoalResponse,
@@ -14,7 +14,7 @@ from app.schemas.goal import (
     GoalView,
     step_payload,
 )
-from app.schemas.pagination import PageParams, pagination_meta
+from atena_pattern.schemas.pagination import PageParams, pagination_meta
 from app.services.goal_service import GoalService
 
 router = APIRouter(prefix="/goals", tags=["goals"])

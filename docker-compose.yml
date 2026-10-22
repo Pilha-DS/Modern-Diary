@@ -1,16 +1,59 @@
-include:
-  - path: ./application/backend/docker-compose.yml
-    env_file: ./application/backend/.env
-    project_directory: ./application/backend
-
 services:
+  db:
+    image: mysql:8.4
+    command: --default-time-zone=+00:00
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-modern_diary}
+      MYSQL_USER: ${MYSQL_USER:-modern_diary}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?defina MYSQL_PASSWORD no .env}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?defina MYSQL_ROOT_PASSWORD no .env}
+      TZ: UTC
+    ports:
+      - "${MYSQL_PORT:-3306}:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u root -p\"$$MYSQL_ROOT_PASSWORD\" --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+    restart: unless-stopped
+
+  api:
+    build:
+      context: .
+      dockerfile: application/backend/Dockerfile
+    environment:
+      APP_NAME: ${APP_NAME:-Modern Diary API}
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      SECRET_KEY: ${SECRET_KEY:?defina SECRET_KEY no .env}
+      ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-60}
+      CORS_ORIGINS: ${CORS_ORIGINS:-*}
+      DATABASE_URL: mysql+pymysql://${MYSQL_USER:-modern_diary}:${MYSQL_PASSWORD}@db:3306/${MYSQL_DATABASE:-modern_diary}
+    ports:
+      - "${API_PORT:-8000}:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3)"
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 20s
+    restart: unless-stopped
+
   web:
     build:
-      context: ./application/frontend
+      context: .
+      dockerfile: application/frontend/Dockerfile
       args:
-        # Vazio: o nginx do container encaminha /api para o servico "api".
+        # Vazio: o nginx do container encaminha /api para o serviço "api".
         API_BASE_URL: ${API_PUBLIC_URL:-}
-        # Rodape: vazio usa o padrao do app (application/frontend/app/lib/src/core/config/app_info.dart).
+        # Rodapé: vazio usa o padrão em application/frontend/lib/src/core/config/app_info.dart.
         APP_AUTHOR_NAME: ${APP_AUTHOR_NAME:-}
         APP_CONTACT_EMAIL: ${APP_CONTACT_EMAIL:-}
         APP_AUTHOR_PHONE: ${APP_AUTHOR_PHONE:-}
@@ -19,4 +62,15 @@ services:
     ports:
       - "${FRONTEND_PORT:-8080}:80"
     depends_on:
-      - api
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/healthz >/dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+    restart: unless-stopped
+
+volumes:
+  mysql_data:

@@ -4,7 +4,7 @@ from sqlalchemy import case, delete, func, select
 from sqlalchemy.orm import Session
 
 from app.models.agenda import AgendaActivity, AgendaDay, AgendaNote, Priority
-from app.models.sensitivity import Sensitivity
+from atena_pattern.models.sensitivity import Sensitivity
 
 
 class AgendaRepository:

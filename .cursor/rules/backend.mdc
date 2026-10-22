@@ -1,0 +1,28 @@
+---
+description: Regras de backend (FastAPI, SQLAlchemy, permissões)
+globs: packages/atena_pattern/**/*.py, application/backend/**/*.py
+alwaysApply: false
+---
+
+# Backend
+
+Leia `AGENTS.md` (seção Backend) e `docs/BACKEND.md` antes de editar.
+
+- Camadas: rota recebe/valida/responde, serviço decide, repositório fala com o
+  banco. Nada de SQL na rota nem regra no repositório.
+- Resposta sempre por `api_response` (envelope único da biblioteca). Não crie
+  segundo formato.
+- Erro de negócio é `AppError`; validação é 422 pelo handler da biblioteca.
+- Toda consulta filtra pelo usuário autenticado, com id vindo da sessão.
+- Leitura filtra `guard.visible(area)`; escrita passa por `ensure_create` /
+  `ensure_write`. Registro acima do nível responde 404, não 403.
+- Área nova: `areas.register(area, Model.sensitivity)`. O motor de permissões não
+  muda. Não importe modelo de domínio dentro de `atena_pattern`.
+- Listagem pagina no banco e devolve `meta`. Ordenação determinística com
+  desempate por chave primária.
+- Migration versionada para toda alteração de banco; a biblioteca só expõe
+  `Base.metadata`.
+- Segredo vem de ambiente. Token de secret só em hash; texto puro aparece uma vez.
+- Regra de negócio tem teste; bug corrigido ganha o teste que o reproduz.
+
+Antes de finalizar: `uv run pytest` verde e `docs/CHECKLIST.md` conferido.

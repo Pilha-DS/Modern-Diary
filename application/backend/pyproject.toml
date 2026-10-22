@@ -4,15 +4,10 @@ version = "0.1.0"
 description = "API do Modern Diary"
 requires-python = ">=3.12"
 dependencies = [
+    "atena-pattern",
     "alembic>=1.14",
-    "argon2-cffi>=23.1",
-    "cryptography>=43.0",
-    "fastapi>=0.115",
-    "pydantic-settings>=2.6",
-    "pyjwt>=2.10",
     "pymysql>=1.1",
     "python-multipart>=0.0.18",
-    "sqlalchemy>=2.0.36",
     "uvicorn[standard]>=0.32",
 ]
 
@@ -22,6 +17,15 @@ dev = [
     "pytest>=8.3",
 ]
 
+[tool.uv]
+package = false
+
+# O núcleo do padrão mora no mesmo repositório: editar packages/atena_pattern
+# reflete aqui sem reinstalar.
+[tool.uv.sources]
+atena-pattern = { path = "../../packages/atena_pattern", editable = true }
+
 [tool.pytest.ini_options]
+pythonpath = ["."]
 testpaths = ["tests"]
 addopts = "-q"
