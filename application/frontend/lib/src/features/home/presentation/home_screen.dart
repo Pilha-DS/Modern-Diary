@@ -4,6 +4,7 @@ import 'package:atena_ui/atena_ui.dart';
 
 import '../../../core/config/app_info.dart';
 import '../../../core/preferences/app_preferences.dart';
+import '../../../core/presentation/diary_mark.dart';
 import '../../../core/strings/app_strings.dart';
 import '../../agenda/data/agenda_repository.dart';
 import '../../agenda/data/holidays_repository.dart';
@@ -412,6 +413,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                     () => _tab = HomeSection.dashboard,
                                   ),
                                   logoTooltip: AppStrings.logoHomeTooltip,
+                                  logoMark: const DiaryMark(),
                                   menuItems: [
                                     AppHeaderMenuItem(
                                       icon: Icons.settings_outlined,

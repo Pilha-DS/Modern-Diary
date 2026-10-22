@@ -57,6 +57,7 @@ class AppHeader extends StatelessWidget {
     this.avatarSize = 44,
     this.onLogoPressed,
     this.logoTooltip,
+    this.logoMark,
   });
 
   final String title;
@@ -81,6 +82,9 @@ class AppHeader extends StatelessWidget {
   /// Texto do tooltip da marca quando ela é tocável.
   final String? logoTooltip;
 
+  /// Desenho próprio da marca, repassado para o [AppLogo].
+  final Widget? logoMark;
+
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
@@ -95,6 +99,7 @@ class AppHeader extends StatelessWidget {
             semanticLabel: title,
             onTap: onLogoPressed,
             tooltip: logoTooltip,
+            mark: logoMark,
           ),
           const SizedBox(width: AppSpacing.md),
           Expanded(

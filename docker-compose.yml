@@ -9,7 +9,7 @@ services:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?defina MYSQL_ROOT_PASSWORD no .env}
       TZ: UTC
     ports:
-      - "${MYSQL_PORT:-3306}:3306"
+      - "${MYSQL_PORT:-3316}:3306"
     volumes:
       - mysql_data:/var/lib/mysql
     healthcheck:
@@ -32,7 +32,7 @@ services:
       CORS_ORIGINS: ${CORS_ORIGINS:-*}
       DATABASE_URL: mysql+pymysql://${MYSQL_USER:-modern_diary}:${MYSQL_PASSWORD}@db:3306/${MYSQL_DATABASE:-modern_diary}
     ports:
-      - "${API_PORT:-8000}:8000"
+      - "${API_PORT:-8470}:8000"
     depends_on:
       db:
         condition: service_healthy
@@ -60,7 +60,7 @@ services:
         APP_AUTHOR_SITE: ${APP_AUTHOR_SITE:-}
         APP_VERSION: ${APP_VERSION:-}
     ports:
-      - "${FRONTEND_PORT:-8080}:80"
+      - "${FRONTEND_PORT:-8471}:80"
     depends_on:
       api:
         condition: service_healthy

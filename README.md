@@ -28,7 +28,7 @@ Modern-Diary/
 
 **Front** — Flutter, para suporte a várias plataformas.
 
-**Conexões** — Front em `http://localhost:8080`, API em `http://localhost:8000` e MySQL em `localhost:3306`.
+**Conexões** — Front em `http://localhost:8471`, API em `http://localhost:8470` e MySQL em `localhost:3316`.
 
 ## Começar
 
@@ -216,9 +216,9 @@ Sobe três serviços:
 
 | Serviço | Endereço padrão | O que é |
 | --- | --- | --- |
-| `web` | `http://localhost:8080` | Flutter web servido pelo nginx |
-| `api` | `http://localhost:8000` | FastAPI (veja `/docs`) |
-| `db` | `localhost:3306` | MySQL 8.4 |
+| `web` | `http://localhost:8471` | Flutter web servido pelo nginx |
+| `api` | `http://localhost:8470` | FastAPI (veja `/docs`) |
+| `db` | `localhost:3316` | MySQL 8.4 |
 
 O `web` encaminha `/api` para o serviço `api`, então o navegador fala com a mesma origem:
 não há CORS nem necessidade de informar a URL da API no build. O primeiro build do `web`
@@ -227,9 +227,10 @@ baixa o SDK do Flutter e demora alguns minutos; os seguintes usam o cache das ca
 O `api` espera o MySQL ficar saudável e roda `alembic upgrade head` antes de subir o
 servidor.
 
-Se a porta `8000`, `3306` ou `8080` já estiver em uso, ajuste `API_PORT`, `MYSQL_PORT` e
-`FRONTEND_PORT` no `.env` da raiz. Use `make down` para parar e `make clean` para apagar
-também o volume do MySQL.
+As portas padrão ficam numa faixa pouco usada (`8470`, `8471` e `3316`) justamente para
+não conflitar com outros serviços da máquina. Se ainda assim estiverem em uso, ajuste
+`API_PORT`, `MYSQL_PORT` e `FRONTEND_PORT` no `.env` da raiz. Use `make down` para parar e
+`make clean` para apagar também o volume do MySQL.
 
 Para apontar o front para uma API em outro endereço (fora do compose), informe no build:
 
@@ -255,13 +256,13 @@ O banco `modern_diary` precisa existir. Se o MySQL estiver no Docker, `docker co
 
 | Variável | Para que serve |
 | --- | --- |
-| `DATABASE_URL` | Conexão SQLAlchemy (`mysql+pymysql://usuario:senha@host:3306/modern_diary`) |
+| `DATABASE_URL` | Conexão SQLAlchemy (`mysql+pymysql://usuario:senha@host:3316/modern_diary`) |
 | `SECRET_KEY` | Assinatura dos tokens JWT (mínimo 32 caracteres) |
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | Validade do token, em minutos |
 | `CORS_ORIGINS` | Origens liberadas para o Flutter web, separadas por vírgula (`*` só em dev) |
 | `MYSQL_DATABASE`, `MYSQL_USER`, `MYSQL_PASSWORD`, `MYSQL_ROOT_PASSWORD` | Usadas pelo `docker compose` para criar o MySQL |
-| `API_PORT`, `MYSQL_PORT` | Portas publicadas no host pelo `docker compose` (padrão `8000` e `3306`) |
-| `FRONTEND_PORT` | Porta do front no `docker compose` (padrão `8080`) |
+| `API_PORT`, `MYSQL_PORT` | Portas publicadas no host pelo `docker compose` (padrão `8470` e `3316`) |
+| `FRONTEND_PORT` | Porta do front no `docker compose` (padrão `8471`) |
 | `API_PUBLIC_URL` | URL da API compilada no front quando ela não é a do próprio compose (padrão vazio, usando `/api` pelo nginx) |
 
 ### Roles
@@ -511,17 +512,17 @@ Arch, defina também `CHROME_EXECUTABLE=/usr/bin/google-chrome-stable` para o
 ```bash
 cd application/frontend
 flutter pub get
-flutter run -d chrome --dart-define=API_BASE_URL=http://localhost:8000
+flutter run -d chrome --dart-define=API_BASE_URL=http://localhost:8470
 ```
 
 Para gerar o build web:
 
 ```bash
-flutter build web --dart-define=API_BASE_URL=http://localhost:8000
+flutter build web --dart-define=API_BASE_URL=http://localhost:8470
 ```
 
-O `API_BASE_URL` padrão é `http://localhost:8000`. Se você trocou `API_PORT` no backend,
-use a mesma porta aqui (ex.: `http://localhost:8001`). Em dispositivo físico, use o IP da
+O `API_BASE_URL` padrão é `http://localhost:8470`. Se você trocou `API_PORT` no backend,
+use a mesma porta aqui (ex.: `http://localhost:8472`). Em dispositivo físico, use o IP da
 máquina e libere essa origem em `CORS_ORIGINS` no backend.
 
 O `Dockerfile` fica em `application/frontend` e compila o web com

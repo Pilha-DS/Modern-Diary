@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="512" height="512">
+  <title>Modern Diary</title>
+  <defs>
+    <linearGradient id="badge" x1=".15" y1="0" x2=".85" y2="1">
+      <stop offset="0" stop-color="#46A57B"/>
+      <stop offset=".55" stop-color="#2E7D5B"/>
+      <stop offset="1" stop-color="#164A38"/>
+    </linearGradient>
+    <linearGradient id="gloss" x1="0" y1="0" x2=".5" y2=".5">
+      <stop offset="0" stop-color="#fff" stop-opacity=".14"/>
+      <stop offset="1" stop-color="#fff" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <rect width="100" height="100" fill="url(#badge)"/>
+  <rect width="100" height="100" fill="url(#gloss)"/>
+  <path d="M49.5 34C41.5 28 30 27 21 30v41c9-3 20.5-2 28.5 4 8-6 19.5-7 28.5-4V30c-9-3-20.5-2-28.5 4Z" fill="#fff"/>
+  <path d="M49.5 34v41" stroke="#1F5B42" stroke-width="2.4" stroke-linecap="round"/>
+  <path d="M58 31.5v14l5-3.6 5 3.6v-14Z" fill="#F5C95B"/>
+  <g stroke="#1F5B42" stroke-width="2.4" stroke-linecap="round" stroke-opacity=".42">
+    <path d="M30 45h11M30 52.5h11M59 45h11M59 52.5h11"/>
+  </g>
+</svg>

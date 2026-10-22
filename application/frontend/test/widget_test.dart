@@ -12,7 +12,8 @@ void main() {
     await tester.pumpWidget(const ModernDiaryApp());
     await tester.pumpAndSettle();
 
-    expect(find.text(AppStrings.loginTitle), findsOneWidget);
+    expect(find.text(AppStrings.appName), findsOneWidget);
+    expect(find.text(AppStrings.appTagline), findsOneWidget);
     expect(find.text(AppStrings.usernameLabel), findsOneWidget);
     expect(find.text(AppStrings.passwordLabel), findsOneWidget);
   });
@@ -24,7 +25,7 @@ void main() {
     await tester.tap(find.text(AppStrings.switchToRegisterAction));
     await tester.pumpAndSettle();
 
-    expect(find.text(AppStrings.registerTitle), findsOneWidget);
+    expect(find.text(AppStrings.register), findsOneWidget);
     expect(find.text(AppStrings.usernameLabel), findsOneWidget);
   });
 

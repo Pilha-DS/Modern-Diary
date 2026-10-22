@@ -2,8 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:atena_ui/atena_ui.dart';
 
+import '../../../core/presentation/diary_mark.dart';
 import '../../../core/strings/app_strings.dart';
 import 'auth_controller.dart';
+
+/// Cartão de acesso: estreito e alto, com o conteúdo respirando.
+const double _formWidth = 384;
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key, required this.controller, required this.toat});
@@ -77,9 +81,7 @@ class _AuthScreenState extends State<AuthScreen> {
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(AppSpacing.md),
               child: ConstrainedBox(
-                constraints: const BoxConstraints(
-                  maxWidth: AppSpacing.maxFormWidth,
-                ),
+                constraints: const BoxConstraints(maxWidth: _formWidth),
                 child: ListenableBuilder(
                   listenable: widget.controller,
                   builder: (context, _) => _buildForm(context),
@@ -102,7 +104,10 @@ class _AuthScreenState extends State<AuthScreen> {
         controller.error != null && controller.fieldErrors.isEmpty;
 
     return AppSurface(
-      padding: const EdgeInsets.all(AppSpacing.xl),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.xl,
+        vertical: AppSpacing.xxl,
+      ),
       child: AutofillGroup(
         child: Form(
           key: _formKey,
@@ -111,7 +116,10 @@ class _AuthScreenState extends State<AuthScreen> {
             children: [
               Row(
                 children: [
-                  const AppLogo(semanticLabel: AppStrings.appName),
+                  const AppLogo(
+                    semanticLabel: AppStrings.appName,
+                    mark: DiaryMark(),
+                  ),
                   const SizedBox(width: AppSpacing.md),
                   Expanded(
                     child: Column(
@@ -129,23 +137,7 @@ class _AuthScreenState extends State<AuthScreen> {
                   ),
                 ],
               ),
-              const SizedBox(height: AppSpacing.xl),
-              Text(
-                _registerMode
-                    ? AppStrings.registerTitle
-                    : AppStrings.loginTitle,
-                style: textTheme.headlineSmall,
-              ),
-              const SizedBox(height: AppSpacing.xs),
-              Text(
-                _registerMode
-                    ? AppStrings.registerSubtitle
-                    : AppStrings.loginSubtitle,
-                style: textTheme.bodyMedium?.copyWith(
-                  color: colorScheme.onSurfaceVariant,
-                ),
-              ),
-              const SizedBox(height: AppSpacing.lg),
+              const SizedBox(height: AppSpacing.xxl),
               if (showGeneralError) ...[
                 InlineMessage(
                   message: controller.error!.message,
@@ -172,7 +164,7 @@ class _AuthScreenState extends State<AuthScreen> {
                   return null;
                 },
               ),
-              const SizedBox(height: AppSpacing.md),
+              const SizedBox(height: AppSpacing.lg),
               AppTextField(
                 controller: _passwordController,
                 label: AppStrings.passwordLabel,
@@ -198,14 +190,14 @@ class _AuthScreenState extends State<AuthScreen> {
                   return null;
                 },
               ),
-              const SizedBox(height: AppSpacing.lg),
+              const SizedBox(height: AppSpacing.xl),
               AppButton(
                 label: _registerMode ? AppStrings.register : AppStrings.login,
                 onPressed: _submit,
                 isLoading: controller.isSubmitting,
                 expanded: true,
               ),
-              const SizedBox(height: AppSpacing.md),
+              const SizedBox(height: AppSpacing.lg),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [

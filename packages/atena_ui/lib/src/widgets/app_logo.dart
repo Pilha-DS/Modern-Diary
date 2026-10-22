@@ -11,6 +11,7 @@ class AppLogo extends StatelessWidget {
     this.onTap,
     this.tooltip,
     this.icon = Icons.auto_stories_rounded,
+    this.mark,
   });
 
   final double size;
@@ -18,6 +19,10 @@ class AppLogo extends StatelessWidget {
 
   /// Ícone da marca. O package não conhece a identidade do projeto.
   final IconData icon;
+
+  /// Desenho próprio da marca (vetor, imagem): ocupa o lugar de [icon] dentro
+  /// do símbolo. Recebe o quadrado inteiro e desenha na proporção que quiser.
+  final Widget? mark;
 
   /// Ação ao tocar na marca; sem ela, a logo é só visual.
   final VoidCallback? onTap;
@@ -29,7 +34,7 @@ class AppLogo extends StatelessWidget {
   Widget build(BuildContext context) {
     final semanticColors = AppSemanticColors.of(context);
 
-    final mark = Semantics(
+    final badge = Semantics(
       label: semanticLabel,
       image: true,
       child: Container(
@@ -43,16 +48,18 @@ class AppLogo extends StatelessWidget {
           ),
           borderRadius: BorderRadius.circular(size * 0.32),
         ),
-        child: Icon(
-          icon,
-          color: Theme.of(context).colorScheme.onTertiary,
-          size: size * 0.52,
-        ),
+        child:
+            mark ??
+            Icon(
+              icon,
+              color: Theme.of(context).colorScheme.onTertiary,
+              size: size * 0.52,
+            ),
       ),
     );
 
     if (onTap == null) {
-      return mark;
+      return badge;
     }
 
     return Tooltip(
@@ -65,7 +72,7 @@ class AppLogo extends StatelessWidget {
           button: true,
           label: tooltip ?? semanticLabel,
           excludeSemantics: true,
-          child: mark,
+          child: badge,
         ),
       ),
     );

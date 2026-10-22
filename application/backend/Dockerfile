@@ -19,7 +19,10 @@ RUN uv sync --frozen --no-dev --no-install-project
 
 COPY packages/atena_pattern /src/packages/atena_pattern
 COPY application/backend /src/application/backend
-RUN uv sync --frozen --no-dev
+
+# `--reinstall-package`: o sync acima marcou o atena-pattern como instalado quando
+# só os manifests existiam; sem reinstall o pacote fica sem código no site-packages.
+RUN uv sync --frozen --no-dev --reinstall-package atena-pattern
 
 EXPOSE 8000
 

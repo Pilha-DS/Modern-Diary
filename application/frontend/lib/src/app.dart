@@ -6,6 +6,7 @@ import 'core/config/api_config.dart';
 import 'core/network/api_client.dart';
 import 'core/network/auth_token.dart';
 import 'core/preferences/app_preferences.dart';
+import 'core/presentation/diary_mark.dart';
 import 'core/strings/app_strings.dart';
 import 'features/agenda/data/agenda_repository.dart';
 import 'features/agenda/data/holidays_repository.dart';
@@ -163,6 +164,7 @@ class _SplashScreen extends StatelessWidget {
               const AppLogo(
                 size: AppSpacing.xxl,
                 semanticLabel: AppStrings.appName,
+                mark: DiaryMark(),
               ),
               const SizedBox(height: AppSpacing.md),
               Text(

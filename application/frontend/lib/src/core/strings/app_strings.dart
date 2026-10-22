@@ -1,15 +1,10 @@
 /// Todo texto visível do aplicativo fica aqui.
 abstract final class AppStrings {
   static const String appName = 'Modern Diary';
-  static const String appTagline = 'Seu dia, organizado.';
+  static const String appTagline = 'Organize seu dia.';
 
   static const String login = 'Entrar';
   static const String register = 'Criar conta';
-  static const String loginTitle = 'Bem-vindo de volta';
-  static const String registerTitle = 'Crie sua conta';
-  static const String loginSubtitle = 'Entre para continuar de onde parou.';
-  static const String registerSubtitle =
-      'Leva menos de um minuto para começar.';
 
   static const String usernameLabel = 'Nome de usuário';
   static const String usernameHint = 'ex.: jonathan';
