@@ -9,7 +9,9 @@ enum HomeSection {
   notes,
   goals,
   knowledge,
+  lifeGraph,
   tags,
+  aboutMe,
   secrets,
   users,
 }
@@ -36,6 +38,7 @@ class HomeNavigation {
     required this.openTag,
     required this.openGoal,
     required this.openKnowledgeItem,
+    required this.openNote,
     required this.openDay,
     required this.openSection,
   });
@@ -48,6 +51,9 @@ class HomeNavigation {
 
   /// Abre o conhecimento na tela de conhecimentos.
   final void Function(int itemId) openKnowledgeItem;
+
+  /// Abre a nota na tela de notas.
+  final void Function(int noteId) openNote;
 
   /// Abre o dia no calendário.
   final void Function(DateTime day) openDay;

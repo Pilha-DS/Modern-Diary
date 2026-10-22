@@ -53,6 +53,10 @@ abstract interface class KnowledgeDataSource {
 
   Future<void> deleteAttachment(int itemId, int attachmentId);
 
+  Future<KnowledgeObservation> addObservation(int itemId, String text);
+
+  Future<void> deleteObservation(int itemId, int observationId);
+
   Uri attachmentDownloadUri(KnowledgeAttachment attachment);
 }
 
@@ -240,6 +244,26 @@ class KnowledgeRepository implements KnowledgeDataSource {
   Future<void> deleteAttachment(int itemId, int attachmentId) async {
     await _client.delete(
       '/api/v1/knowledge/$itemId/attachments/$attachmentId',
+      parse: (_) {},
+    );
+  }
+
+  @override
+  Future<KnowledgeObservation> addObservation(int itemId, String text) async {
+    final envelope = await _client.post(
+      '/api/v1/knowledge/$itemId/observations',
+      body: {'text': text},
+      parse: (data) => KnowledgeObservation.fromJson(
+        Map<String, dynamic>.from(data! as Map),
+      ),
+    );
+    return envelope.data!;
+  }
+
+  @override
+  Future<void> deleteObservation(int itemId, int observationId) async {
+    await _client.delete(
+      '/api/v1/knowledge/$itemId/observations/$observationId',
       parse: (_) {},
     );
   }

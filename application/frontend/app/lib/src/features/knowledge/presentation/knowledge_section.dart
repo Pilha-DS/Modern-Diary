@@ -240,6 +240,15 @@ class _KnowledgeSectionState extends State<KnowledgeSection> {
     return error == null;
   }
 
+  /// Conexão criada arrastando um nó sobre outro, no grafo.
+  Future<void> _connectFromGraph(
+    KnowledgeNodeData source,
+    KnowledgeNodeData target,
+  ) async {
+    final error = await _controller.addRelation(source.id, target.id);
+    _notify(error, AppStrings.knowledgeGraphConnected(target.title));
+  }
+
   Future<void> _openLinks(KnowledgeItem item) {
     return showKnowledgeCollectionDialog<KnowledgeExternalLink>(
       context: context,
@@ -378,9 +387,33 @@ class _KnowledgeSectionState extends State<KnowledgeSection> {
       context,
       item: item,
       onContentChanged: (content) => _saveContent(item, content),
+      onAddObservation: (text) => _addObservation(item, text),
+      onRemoveObservation: (observation) =>
+          _removeObservation(item, observation),
       onOpenAttachment: _openAttachment,
       onRemoveAttachment: (attachment) => _removeAttachment(item, attachment),
     );
+  }
+
+  Future<(KnowledgeObservation?, ApiException?)> _addObservation(
+    KnowledgeItem item,
+    String text,
+  ) async {
+    final (observation, error) = await _controller.addObservation(
+      item.id,
+      text,
+    );
+    _notify(error, AppStrings.knowledgeObservationAdded);
+    return (observation, error);
+  }
+
+  Future<ApiException?> _removeObservation(
+    KnowledgeItem item,
+    KnowledgeObservation observation,
+  ) async {
+    final error = await _controller.deleteObservation(item.id, observation.id);
+    _notify(error, AppStrings.knowledgeObservationRemoved);
+    return error;
   }
 
   Future<ApiException?> _saveContent(KnowledgeItem item, String content) async {
@@ -591,6 +624,7 @@ class _KnowledgeSectionState extends State<KnowledgeSection> {
             child: KnowledgeGraphView(
               graph: graph,
               onNodeTap: (node) => _openRelated(node.id),
+              onConnect: _connectFromGraph,
             ),
           ),
         ),

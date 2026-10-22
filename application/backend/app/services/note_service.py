@@ -4,10 +4,14 @@ from app.core.access import AccessGuard, Actor
 from app.core.errors import AppError
 from app.models.api_secret import AuditAction
 from app.models.area import Area
+from app.models.audit import AuditArea, AuditKind
 from app.models.note import Note
+from app.models.life_link import LinkType
 from app.models.sensitivity import Sensitivity
+from app.repositories.life_repository import LifeRepository
 from app.repositories.note_repository import NoteRepository
 from app.schemas.note import MAX_NOTES_PER_USER
+from app.services.audit_service import AuditRef, AuditService
 
 
 class NoteService:
@@ -16,6 +20,7 @@ class NoteService:
         self.actor = actor
         self.access = AccessGuard(session, actor)
         self.notes = NoteRepository(session)
+        self.audit = AuditService(session, actor.user_id)
 
     def list_notes(
         self,
@@ -61,6 +66,11 @@ class NoteService:
         self.notes.add(note)
         self.session.flush()
         self.access.record_created(Area.NOTE, "note", note.id)
+        self.audit.record(
+            area=AuditArea.NOTE,
+            kind=AuditKind.CREATE,
+            source=AuditRef("note", str(note.id), _note_label(note)),
+        )
         self.session.commit()
         return note
 
@@ -93,6 +103,11 @@ class NoteService:
             self.access.ensure_new_level(Area.NOTE, sensitivity)
             note.sensitivity = sensitivity
 
+        self.audit.record(
+            area=AuditArea.NOTE,
+            kind=AuditKind.UPDATE,
+            source=AuditRef("note", str(note.id), _note_label(note)),
+        )
         self.session.commit()
         return note
 
@@ -106,6 +121,14 @@ class NoteService:
             action=AuditAction.DELETE,
         )
         self.notes.remove(note)
+        LifeRepository(self.session).remove_links_for(
+            self.actor.user_id, LinkType.NOTE, str(note.id)
+        )
+        self.audit.record(
+            area=AuditArea.NOTE,
+            kind=AuditKind.DELETE,
+            source=AuditRef("note", str(note.id), _note_label(note)),
+        )
         self.session.commit()
 
     def _get_note_or_fail(self, note_id: int) -> Note:
@@ -121,3 +144,12 @@ class NoteService:
                 status_code=404,
             )
         return note
+
+
+def _note_label(note: Note) -> str:
+    """Título da nota ou a primeira linha do conteúdo, para o histórico."""
+    title = (note.title or "").strip()
+    if title:
+        return title
+    first_line = (note.content or "").strip().splitlines()
+    return (first_line[0] if first_line else "Sem título")[:80]

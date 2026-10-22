@@ -10,13 +10,16 @@ import 'package:modern_diary/src/core/preferences/app_preferences.dart';
 import 'package:modern_diary/src/core/strings/app_strings.dart';
 import 'package:modern_diary/src/features/agenda/data/agenda_repository.dart';
 import 'package:modern_diary/src/features/agenda/data/holidays_repository.dart';
+import 'package:modern_diary/src/features/audit/data/audit_repository.dart';
 import 'package:modern_diary/src/features/auth/data/auth_repository.dart';
 import 'package:modern_diary/src/features/auth/data/session_store.dart';
 import 'package:modern_diary/src/features/auth/presentation/auth_controller.dart';
 import 'package:modern_diary/src/features/goals/data/goals_repository.dart';
 import 'package:modern_diary/src/features/home/presentation/home_screen.dart';
 import 'package:modern_diary/src/features/knowledge/data/knowledge_repository.dart';
+import 'package:modern_diary/src/features/life/data/life_repository.dart';
 import 'package:modern_diary/src/features/notes/data/notes_repository.dart';
+import 'package:modern_diary/src/features/search/data/search_repository.dart';
 import 'package:modern_diary/src/features/secrets/data/secrets_repository.dart';
 import 'package:modern_diary/src/features/settings/data/countries_repository.dart';
 import 'package:modern_diary/src/features/tags/data/tags_repository.dart';
@@ -117,8 +120,11 @@ void main() {
           holidaysRepository: HolidaysRepository(apiClient),
           goalsRepository: GoalsRepository(apiClient),
           knowledgeRepository: KnowledgeRepository(apiClient),
+          lifeRepository: LifeRepository(apiClient),
           notesRepository: NotesRepository(apiClient),
+          searchRepository: SearchRepository(apiClient),
           tagsRepository: TagsRepository(apiClient),
+          auditRepository: AuditRepository(apiClient),
           secretsRepository: SecretsRepository(apiClient),
           countriesRepository: CountriesRepository(apiClient),
         ),

@@ -23,6 +23,7 @@ class _Recorder {
   int? goalId;
   int? knowledgeId;
   DateTime? day;
+  int? noteId;
   HomeSection? section;
   int focusHandled = 0;
 
@@ -30,6 +31,7 @@ class _Recorder {
     openTag: (tag) => this.tag = tag,
     openGoal: (goalId) => this.goalId = goalId,
     openKnowledgeItem: (itemId) => knowledgeId = itemId,
+    openNote: (noteId) => this.noteId = noteId,
     openDay: (day) => this.day = day,
     openSection: (section) => this.section = section,
   );

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:modern_diary_ui/modern_diary_ui.dart';
 
 import '../../../core/config/app_info.dart';
@@ -9,13 +10,19 @@ import '../../agenda/data/holidays_repository.dart';
 import '../../agenda/presentation/agenda_controller.dart';
 import '../../agenda/presentation/calendar_tab.dart';
 import '../../agenda/presentation/dashboard_tab.dart';
+import '../../audit/data/audit_repository.dart';
+import '../../audit/presentation/about_me_section.dart';
 import '../../auth/presentation/auth_controller.dart';
 import '../../goals/data/goals_repository.dart';
 import '../../goals/presentation/goals_section.dart';
 import '../../knowledge/data/knowledge_repository.dart';
 import '../../knowledge/presentation/knowledge_section.dart';
+import '../../life/data/life_repository.dart';
+import '../../life/presentation/life_graph_section.dart';
 import '../../notes/data/notes_repository.dart';
 import '../../notes/presentation/notes_section.dart';
+import '../../search/data/search_repository.dart';
+import '../../search/presentation/search_dialog.dart';
 import '../../secrets/data/secrets_repository.dart';
 import '../../secrets/presentation/secrets_section.dart';
 import '../../settings/data/countries_repository.dart';
@@ -38,8 +45,11 @@ class HomeScreen extends StatefulWidget {
     required this.holidaysRepository,
     required this.goalsRepository,
     required this.knowledgeRepository,
+    required this.lifeRepository,
     required this.notesRepository,
+    required this.searchRepository,
     required this.tagsRepository,
+    required this.auditRepository,
     required this.secretsRepository,
     required this.countriesRepository,
   });
@@ -52,8 +62,11 @@ class HomeScreen extends StatefulWidget {
   final HolidaysDataSource holidaysRepository;
   final GoalsRepository goalsRepository;
   final KnowledgeRepository knowledgeRepository;
+  final LifeDataSource lifeRepository;
   final NotesRepository notesRepository;
+  final SearchDataSource searchRepository;
   final TagsRepository tagsRepository;
+  final AuditRepository auditRepository;
   final SecretsRepository secretsRepository;
   final CountriesRepository countriesRepository;
 
@@ -69,6 +82,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Tag? _pendingTag;
   int? _pendingGoalId;
   int? _pendingKnowledgeId;
+  int? _pendingNoteId;
   DateTime? _pendingDay;
 
   late final HomeNavigation _navigation = HomeNavigation(
@@ -83,6 +97,10 @@ class _HomeScreenState extends State<HomeScreen> {
     openKnowledgeItem: (itemId) => setState(() {
       _pendingKnowledgeId = itemId;
       _tab = HomeSection.knowledge;
+    }),
+    openNote: (noteId) => setState(() {
+      _pendingNoteId = noteId;
+      _tab = HomeSection.notes;
     }),
     openDay: (day) => setState(() {
       _pendingDay = day;
@@ -109,6 +127,12 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  void _consumeNoteFocus() {
+    if (_pendingNoteId != null) {
+      setState(() => _pendingNoteId = null);
+    }
+  }
+
   void _consumeDayFocus() {
     if (_pendingDay != null) {
       setState(() => _pendingDay = null);
@@ -130,6 +154,30 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _logout() async {
     await widget.auth.logout();
     widget.toat.show(AppStrings.logoutSuccess, variant: ToatVariant.info);
+  }
+
+  /// Abre a pesquisa universal: header, menu orbital e tecla `Q`.
+  Future<void> _openSearch() {
+    return showSearchDialog(
+      context,
+      dataSource: widget.searchRepository,
+      tagsDataSource: widget.tagsRepository,
+      navigation: _navigation,
+    );
+  }
+
+  /// `Q` é atalho de texto: só dispara quando nada está sendo digitado.
+  KeyEventResult _handleSearchShortcut(FocusNode node, KeyEvent event) {
+    if (event is! KeyDownEvent || event.logicalKey != LogicalKeyboardKey.keyQ) {
+      return KeyEventResult.ignored;
+    }
+    final focus = FocusManager.instance.primaryFocus?.context;
+    if (focus != null &&
+        focus.findAncestorWidgetOfExactType<EditableText>() != null) {
+      return KeyEventResult.ignored;
+    }
+    _openSearch();
+    return KeyEventResult.handled;
   }
 
   /// Abre as configurações básicas e aplica o que o usuário salvou.
@@ -171,6 +219,11 @@ class _HomeScreenState extends State<HomeScreen> {
         onSelected: () => setState(() => _tab = HomeSection.dashboard),
       ),
       OrbitalMenuItem(
+        icon: Icons.search_rounded,
+        label: AppStrings.searchTitle,
+        onSelected: _openSearch,
+      ),
+      OrbitalMenuItem(
         icon: Icons.calendar_month_outlined,
         label: AppStrings.calendarTab,
         isSelected: _tab == HomeSection.calendar,
@@ -195,10 +248,22 @@ class _HomeScreenState extends State<HomeScreen> {
         onSelected: () => setState(() => _tab = HomeSection.knowledge),
       ),
       OrbitalMenuItem(
+        icon: Icons.scatter_plot_outlined,
+        label: AppStrings.liveGraphTab,
+        isSelected: _tab == HomeSection.lifeGraph,
+        onSelected: () => setState(() => _tab = HomeSection.lifeGraph),
+      ),
+      OrbitalMenuItem(
         icon: Icons.sell_outlined,
         label: AppStrings.tagsTab,
         isSelected: _tab == HomeSection.tags,
         onSelected: () => setState(() => _tab = HomeSection.tags),
+      ),
+      OrbitalMenuItem(
+        icon: Icons.person_outline_rounded,
+        label: AppStrings.aboutMeTab,
+        isSelected: _tab == HomeSection.aboutMe,
+        onSelected: () => setState(() => _tab = HomeSection.aboutMe),
       ),
       OrbitalMenuItem(
         icon: Icons.vpn_key_outlined,
@@ -250,9 +315,19 @@ class _HomeScreenState extends State<HomeScreen> {
         label: AppStrings.knowledgeTab,
       ),
       const HomeQuickLink(
+        section: HomeSection.lifeGraph,
+        icon: Icons.scatter_plot_outlined,
+        label: AppStrings.liveGraphTab,
+      ),
+      const HomeQuickLink(
         section: HomeSection.tags,
         icon: Icons.sell_outlined,
         label: AppStrings.tagsTab,
+      ),
+      const HomeQuickLink(
+        section: HomeSection.aboutMe,
+        icon: Icons.person_outline_rounded,
+        label: AppStrings.aboutMeTab,
       ),
       const HomeQuickLink(
         section: HomeSection.secrets,
@@ -273,152 +348,179 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       body: AppBackground(
         child: SafeArea(
-          child: ListenableBuilder(
-            listenable: Listenable.merge([widget.auth, widget.preferences]),
-            builder: (context, _) {
-              final user = widget.auth.user;
-              if (user == null) {
-                return const SizedBox.shrink();
-              }
+          child: Focus(
+            autofocus: true,
+            includeSemantics: false,
+            onKeyEvent: _handleSearchShortcut,
+            child: ListenableBuilder(
+              listenable: Listenable.merge([widget.auth, widget.preferences]),
+              builder: (context, _) {
+                final user = widget.auth.user;
+                if (user == null) {
+                  return const SizedBox.shrink();
+                }
 
-              final tab = _tab == HomeSection.users && !user.isAdmin
-                  ? HomeSection.dashboard
-                  : _tab;
+                final tab = _tab == HomeSection.users && !user.isAdmin
+                    ? HomeSection.dashboard
+                    : _tab;
 
-              // `StackFit.expand` prende o menu orbital ao rodapé da tela: sem
-              // ele, a pilha encolhe até a altura do conteúdo e o menu sobe
-              // junto com a página quando o conteúdo é curto.
-              return Stack(
-                fit: StackFit.expand,
-                children: [
-                  LayoutBuilder(
-                    builder: (context, constraints) => SingleChildScrollView(
-                      padding: const EdgeInsets.fromLTRB(
-                        AppSpacing.md,
-                        AppSpacing.md,
-                        AppSpacing.md,
-                        120,
-                      ),
-                      child: Center(
-                        child: ConstrainedBox(
-                          constraints: const BoxConstraints(
-                            maxWidth: AppSpacing.maxContentWidth,
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              AppHeader(
-                                title: AppStrings.appName,
-                                subtitle: user.username,
-                                avatarLabel: user.username,
-                                avatarImage: widget.preferences.avatarImage,
-                                avatarTooltip: AppStrings.profileMenuLabel,
-                                trailing: RoleBadge(
-                                  role: user.role.apiValue,
-                                  label: AppStrings.roleLabel(
-                                    user.role.apiValue,
+                // `StackFit.expand` prende o menu orbital ao rodapé da tela: sem
+                // ele, a pilha encolhe até a altura do conteúdo e o menu sobe
+                // junto com a página quando o conteúdo é curto.
+                return Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    LayoutBuilder(
+                      builder: (context, constraints) => SingleChildScrollView(
+                        padding: const EdgeInsets.fromLTRB(
+                          AppSpacing.md,
+                          AppSpacing.md,
+                          AppSpacing.md,
+                          120,
+                        ),
+                        child: Center(
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(
+                              maxWidth: AppSpacing.maxContentWidth,
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                AppHeader(
+                                  title: AppStrings.appName,
+                                  subtitle: user.username,
+                                  avatarLabel: user.username,
+                                  avatarImage: widget.preferences.avatarImage,
+                                  avatarTooltip: AppStrings.profileMenuLabel,
+                                  trailing: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      IconButton(
+                                        tooltip: AppStrings.searchAction,
+                                        onPressed: _openSearch,
+                                        icon: const Icon(Icons.search_rounded),
+                                      ),
+                                      RoleBadge(
+                                        role: user.role.apiValue,
+                                        label: AppStrings.roleLabel(
+                                          user.role.apiValue,
+                                        ),
+                                      ),
+                                    ],
                                   ),
-                                ),
-                                onLogoPressed: () => setState(
-                                  () => _tab = HomeSection.dashboard,
-                                ),
-                                logoTooltip: AppStrings.logoHomeTooltip,
-                                menuItems: [
-                                  AppHeaderMenuItem(
-                                    icon: Icons.settings_outlined,
-                                    label: AppStrings.settingsTitle,
-                                    onSelected: _openSettings,
+                                  onLogoPressed: () => setState(
+                                    () => _tab = HomeSection.dashboard,
                                   ),
-                                ],
-                              ),
-                              const SizedBox(height: AppSpacing.lg),
-                              // Toda tela ocupa pelo menos a altura
-                              // visível: o rodapé nunca aparece no início
-                              // da visão, só depois de rolar.
-                              ConstrainedBox(
-                                constraints: BoxConstraints(
-                                  minHeight: constraints.hasBoundedHeight
-                                      ? constraints.maxHeight
-                                      : 0,
-                                ),
-                                child: switch (tab) {
-                                  HomeSection.dashboard => DashboardTab(
-                                    controller: _agenda,
-                                    username: user.username,
-                                    quickLinks: _quickLinks(
-                                      isAdmin: user.isAdmin,
+                                  logoTooltip: AppStrings.logoHomeTooltip,
+                                  menuItems: [
+                                    AppHeaderMenuItem(
+                                      icon: Icons.settings_outlined,
+                                      label: AppStrings.settingsTitle,
+                                      onSelected: _openSettings,
                                     ),
-                                    tagsDataSource: widget.tagsRepository,
-                                    toat: widget.toat,
-                                    navigation: _navigation,
+                                  ],
+                                ),
+                                const SizedBox(height: AppSpacing.lg),
+                                // Toda tela ocupa pelo menos a altura
+                                // visível: o rodapé nunca aparece no início
+                                // da visão, só depois de rolar.
+                                ConstrainedBox(
+                                  constraints: BoxConstraints(
+                                    minHeight: constraints.hasBoundedHeight
+                                        ? constraints.maxHeight
+                                        : 0,
                                   ),
-                                  HomeSection.calendar => CalendarTab(
-                                    controller: _agenda,
-                                    tagsDataSource: widget.tagsRepository,
-                                    toat: widget.toat,
-                                    navigation: _navigation,
-                                    focusDay: _pendingDay,
-                                    onFocusHandled: _consumeDayFocus,
-                                  ),
-                                  HomeSection.notes => NotesSection(
-                                    repository: widget.notesRepository,
-                                    toat: widget.toat,
-                                  ),
-                                  HomeSection.goals => GoalsSection(
-                                    repository: widget.goalsRepository,
-                                    tagsRepository: widget.tagsRepository,
-                                    toat: widget.toat,
-                                    navigation: _navigation,
-                                    focusGoalId: _pendingGoalId,
-                                    onFocusHandled: _consumeGoalFocus,
-                                  ),
-                                  HomeSection.knowledge => KnowledgeSection(
-                                    repository: widget.knowledgeRepository,
-                                    tagsRepository: widget.tagsRepository,
-                                    goalsRepository: widget.goalsRepository,
-                                    toat: widget.toat,
-                                    navigation: _navigation,
-                                    focusItemId: _pendingKnowledgeId,
-                                    onFocusHandled: _consumeKnowledgeFocus,
-                                  ),
-                                  HomeSection.tags => TagsSection(
-                                    repository: widget.tagsRepository,
-                                    toat: widget.toat,
-                                    navigation: _navigation,
-                                    focusTag: _pendingTag,
-                                    onFocusHandled: _consumeTagFocus,
-                                  ),
-                                  HomeSection.secrets => SecretsSection(
-                                    repository: widget.secretsRepository,
-                                    toat: widget.toat,
-                                  ),
-                                  HomeSection.users => UsersSection(
-                                    repository: widget.usersRepository,
-                                  ),
-                                },
-                              ),
-                              const SizedBox(height: AppSpacing.lg),
-                              const _AppFooter(),
-                            ],
+                                  child: switch (tab) {
+                                    HomeSection.dashboard => DashboardTab(
+                                      controller: _agenda,
+                                      username: user.username,
+                                      quickLinks: _quickLinks(
+                                        isAdmin: user.isAdmin,
+                                      ),
+                                      tagsDataSource: widget.tagsRepository,
+                                      toat: widget.toat,
+                                      navigation: _navigation,
+                                    ),
+                                    HomeSection.calendar => CalendarTab(
+                                      controller: _agenda,
+                                      tagsDataSource: widget.tagsRepository,
+                                      toat: widget.toat,
+                                      navigation: _navigation,
+                                      focusDay: _pendingDay,
+                                      onFocusHandled: _consumeDayFocus,
+                                    ),
+                                    HomeSection.notes => NotesSection(
+                                      repository: widget.notesRepository,
+                                      toat: widget.toat,
+                                      focusNoteId: _pendingNoteId,
+                                      onFocusHandled: _consumeNoteFocus,
+                                    ),
+                                    HomeSection.goals => GoalsSection(
+                                      repository: widget.goalsRepository,
+                                      tagsRepository: widget.tagsRepository,
+                                      toat: widget.toat,
+                                      navigation: _navigation,
+                                      focusGoalId: _pendingGoalId,
+                                      onFocusHandled: _consumeGoalFocus,
+                                    ),
+                                    HomeSection.knowledge => KnowledgeSection(
+                                      repository: widget.knowledgeRepository,
+                                      tagsRepository: widget.tagsRepository,
+                                      goalsRepository: widget.goalsRepository,
+                                      toat: widget.toat,
+                                      navigation: _navigation,
+                                      focusItemId: _pendingKnowledgeId,
+                                      onFocusHandled: _consumeKnowledgeFocus,
+                                    ),
+                                    HomeSection.tags => TagsSection(
+                                      repository: widget.tagsRepository,
+                                      toat: widget.toat,
+                                      navigation: _navigation,
+                                      focusTag: _pendingTag,
+                                      onFocusHandled: _consumeTagFocus,
+                                    ),
+                                    HomeSection.lifeGraph => LifeGraphSection(
+                                      repository: widget.lifeRepository,
+                                      toat: widget.toat,
+                                      navigation: _navigation,
+                                    ),
+                                    HomeSection.aboutMe => AboutMeSection(
+                                      repository: widget.auditRepository,
+                                      user: user,
+                                      navigation: _navigation,
+                                    ),
+                                    HomeSection.secrets => SecretsSection(
+                                      repository: widget.secretsRepository,
+                                      toat: widget.toat,
+                                    ),
+                                    HomeSection.users => UsersSection(
+                                      repository: widget.usersRepository,
+                                    ),
+                                  },
+                                ),
+                                const SizedBox(height: AppSpacing.lg),
+                                const _AppFooter(),
+                              ],
+                            ),
                           ),
                         ),
                       ),
                     ),
-                  ),
-                  Positioned(
-                    left: 0,
-                    right: 0,
-                    bottom: AppSpacing.md,
-                    child: Center(
-                      child: OrbitalMenu(
-                        items: _menuItems(isAdmin: user.isAdmin),
-                        semanticLabel: AppStrings.menuLabel,
+                    Positioned(
+                      left: 0,
+                      right: 0,
+                      bottom: AppSpacing.md,
+                      child: Center(
+                        child: OrbitalMenu(
+                          items: _menuItems(isAdmin: user.isAdmin),
+                          semanticLabel: AppStrings.menuLabel,
+                        ),
                       ),
                     ),
-                  ),
-                ],
-              );
-            },
+                  ],
+                );
+              },
+            ),
           ),
         ),
       ),

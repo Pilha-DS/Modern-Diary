@@ -29,6 +29,7 @@ class KnowledgeController extends ChangeNotifier {
 
   KnowledgeGraphData? _graph;
   bool _isLoadingGraph = false;
+  bool _graphReloadPending = false;
   ApiException? _graphError;
 
   KnowledgeView get view => _view;
@@ -110,6 +111,9 @@ class KnowledgeController extends ChangeNotifier {
 
   Future<void> loadGraph() async {
     if (_isLoadingGraph) {
+      // Já existe uma busca em andamento: a próxima começa quando ela acabar,
+      // para a conexão recém-criada não ficar de fora do grafo.
+      _graphReloadPending = true;
       return;
     }
 
@@ -124,6 +128,10 @@ class KnowledgeController extends ChangeNotifier {
     } finally {
       _isLoadingGraph = false;
       notifyListeners();
+      if (_graphReloadPending) {
+        _graphReloadPending = false;
+        await loadGraph();
+      }
     }
   }
 
@@ -244,6 +252,35 @@ class KnowledgeController extends ChangeNotifier {
     );
   }
 
+  /// Devolve a observação criada para o modal mostrar sem recarregar o item.
+  Future<(KnowledgeObservation?, ApiException?)> addObservation(
+    int itemId,
+    String text,
+  ) async {
+    if (_busyItems.contains(itemId)) {
+      return (null, null);
+    }
+    _busyItems.add(itemId);
+    notifyListeners();
+    try {
+      final observation = await _dataSource.addObservation(itemId, text);
+      await _reloadAfterChange();
+      return (observation, null);
+    } on ApiException catch (error) {
+      return (null, error);
+    } finally {
+      _busyItems.remove(itemId);
+      notifyListeners();
+    }
+  }
+
+  Future<ApiException?> deleteObservation(int itemId, int observationId) {
+    return _runItemAction(
+      itemId,
+      () => _dataSource.deleteObservation(itemId, observationId),
+    );
+  }
+
   Uri attachmentDownloadUri(KnowledgeAttachment attachment) =>
       _dataSource.attachmentDownloadUri(attachment);
 
@@ -313,9 +350,10 @@ class KnowledgeController extends ChangeNotifier {
   }
 
   Future<void> _reloadAfterChange() async {
-    _graph = null;
     await _fetchFirstPage(showLoading: false);
     if (_view == KnowledgeView.graph) {
+      // Mantém a rede atual na tela enquanto a nova chega: o grafo não perde
+      // a posição dos nós nem o modo de conexão a cada alteração.
       await loadGraph();
     }
   }

@@ -6,13 +6,17 @@ from app.core.access import AccessGuard, Actor
 from app.core.errors import AppError
 from app.models.api_secret import AuditAction
 from app.models.area import Area
+from app.models.audit import AuditArea, AuditKind
 from app.models.goal import Goal, GoalStatus, GoalStep
+from app.models.life_link import LinkType
 from app.models.sensitivity import Sensitivity
 from app.models.tag import TagTarget
 from app.models.user import utc_now
 from app.repositories.goal_repository import GoalRepository
+from app.repositories.life_repository import LifeRepository
 from app.schemas.goal import MAX_STEPS_PER_GOAL, GoalView
 from app.schemas.tag import TagSummary
+from app.services.audit_service import AuditRef, AuditService
 from app.services.tag_service import TagService
 
 MAX_GOALS_PER_USER = 500
@@ -25,6 +29,7 @@ class GoalService:
         self.access = AccessGuard(session, actor)
         self.goals = GoalRepository(session)
         self.tags = TagService(session)
+        self.audit = AuditService(session, actor.user_id)
 
     def list_page(
         self,
@@ -97,6 +102,11 @@ class GoalService:
         self.goals.add(goal)
         self.session.flush()
         self.access.record_created(Area.GOAL, "goal", goal.id)
+        self.audit.record(
+            area=AuditArea.GOAL,
+            kind=AuditKind.CREATE,
+            source=AuditRef("goal", str(goal.id), goal.title),
+        )
         if tag_ids:
             self.tags.set_tags(self.actor.user_id, TagTarget.GOAL, goal.id, tag_ids)
         self.session.commit()
@@ -149,6 +159,11 @@ class GoalService:
                 tag_ids or [],
             )
 
+        self.audit.record(
+            area=AuditArea.GOAL,
+            kind=AuditKind.UPDATE,
+            source=AuditRef("goal", str(goal.id), goal.title),
+        )
         self.session.commit()
         return goal
 
@@ -163,6 +178,14 @@ class GoalService:
         )
         self.goals.delete_knowledge_links(goal_id)
         self.tags.remove_target_links(TagTarget.GOAL, goal_id)
+        LifeRepository(self.session).remove_links_for(
+            self.actor.user_id, LinkType.GOAL, str(goal_id)
+        )
+        self.audit.record(
+            area=AuditArea.GOAL,
+            kind=AuditKind.DELETE,
+            source=AuditRef("goal", str(goal.id), goal.title),
+        )
         self.goals.remove(goal)
         self.session.commit()
 

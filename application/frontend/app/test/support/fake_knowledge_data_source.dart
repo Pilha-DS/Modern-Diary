@@ -12,6 +12,7 @@ class FakeKnowledgeDataSource implements KnowledgeDataSource {
   final List<KnowledgeItem> _items = [];
   late int _nextId;
   int _nextAttachmentId = 1;
+  int _nextObservationId = 1;
   int fetchCalls = 0;
   int graphCalls = 0;
   int? lastGraphTagId;
@@ -258,6 +259,56 @@ class FakeKnowledgeDataSource implements KnowledgeDataSource {
         relations: item.relations,
         attachments: item.attachments
             .where((attachment) => attachment.id != attachmentId)
+            .toList(),
+        createdAt: item.createdAt,
+        updatedAt: item.updatedAt,
+      ),
+    );
+  }
+
+  @override
+  Future<KnowledgeObservation> addObservation(int itemId, String text) async {
+    final item = await fetchItem(itemId);
+    final observation = KnowledgeObservation(
+      id: _nextObservationId++,
+      text: text,
+      createdAt: DateTime(2026, 10, 21, 9, 30),
+    );
+    _replace(
+      KnowledgeItem(
+        id: item.id,
+        title: item.title,
+        content: item.content,
+        links: item.links,
+        sensitivity: item.sensitivity,
+        relations: item.relations,
+        attachments: item.attachments,
+        tags: item.tags,
+        goals: item.goals,
+        observations: [...item.observations, observation],
+        createdAt: item.createdAt,
+        updatedAt: item.updatedAt,
+      ),
+    );
+    return observation;
+  }
+
+  @override
+  Future<void> deleteObservation(int itemId, int observationId) async {
+    final item = await fetchItem(itemId);
+    _replace(
+      KnowledgeItem(
+        id: item.id,
+        title: item.title,
+        content: item.content,
+        links: item.links,
+        sensitivity: item.sensitivity,
+        relations: item.relations,
+        attachments: item.attachments,
+        tags: item.tags,
+        goals: item.goals,
+        observations: item.observations
+            .where((observation) => observation.id != observationId)
             .toList(),
         createdAt: item.createdAt,
         updatedAt: item.updatedAt,

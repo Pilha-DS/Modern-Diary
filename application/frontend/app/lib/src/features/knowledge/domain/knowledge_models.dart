@@ -46,6 +46,29 @@ class KnowledgeAttachment {
   }
 }
 
+/// Observação curta registrada dentro de um conhecimento.
+class KnowledgeObservation {
+  const KnowledgeObservation({
+    required this.id,
+    required this.text,
+    required this.createdAt,
+  });
+
+  final int id;
+  final String text;
+  final DateTime createdAt;
+
+  factory KnowledgeObservation.fromJson(Map<String, dynamic> json) {
+    return KnowledgeObservation(
+      id: json['id'] as int,
+      text: json['text'] as String? ?? '',
+      createdAt: DateTime.parse(
+        json['created_at'] as String? ?? '1970-01-01T00:00:00',
+      ),
+    );
+  }
+}
+
 /// Referência a outro conhecimento conectado.
 class KnowledgeReference {
   const KnowledgeReference({required this.id, required this.title});
@@ -89,6 +112,7 @@ class KnowledgeItem {
     this.content,
     this.goals = const [],
     this.tags = const [],
+    this.observations = const [],
   });
 
   final int id;
@@ -102,6 +126,7 @@ class KnowledgeItem {
   final SensitivityLevel sensitivity;
   final List<KnowledgeGoalReference> goals;
   final List<Tag> tags;
+  final List<KnowledgeObservation> observations;
 
   bool get hasContent => content != null && content!.trim().isNotEmpty;
 
@@ -116,6 +141,7 @@ class KnowledgeItem {
       goals: _list(json['goals'], KnowledgeGoalReference.fromJson),
       tags: _list(json['tags'], Tag.fromJson),
       attachments: _list(json['attachments'], KnowledgeAttachment.fromJson),
+      observations: _list(json['observations'], KnowledgeObservation.fromJson),
       createdAt: DateTime.parse(
         json['created_at'] as String? ?? '1970-01-01T00:00:00',
       ),

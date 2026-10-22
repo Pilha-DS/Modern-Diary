@@ -114,6 +114,26 @@ class KnowledgeGoalLink(Base):
     )
 
 
+class KnowledgeObservation(Base):
+    """Observação curta registrada dentro de um conhecimento."""
+
+    __tablename__ = "knowledge_observations"
+    __table_args__ = (Index("ix_knowledge_observations_item", "item_id"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    item_id: Mapped[int] = mapped_column(
+        ForeignKey("knowledge_items.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    text: Mapped[str] = mapped_column(String(2000), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime,
+        nullable=False,
+        default=utc_now,
+        server_default=func.current_timestamp(),
+    )
+
+
 class KnowledgeAttachment(Base):
     """Arquivo anexado a um conhecimento, guardado no banco."""
 

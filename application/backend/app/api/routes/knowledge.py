@@ -18,8 +18,10 @@ from app.schemas.knowledge import (
     KnowledgeGoalRequest,
     KnowledgeItemResponse,
     KnowledgeLink,
+    KnowledgeObservationRequest,
     KnowledgeRelationRequest,
     KnowledgeUpdateRequest,
+    ObservationResponse,
     RelationReference,
 )
 from app.schemas.pagination import PageParams, pagination_meta
@@ -61,6 +63,14 @@ def _item_payload(
                 download_url=service.download_path(item.id, row[0]),
             )
             for row in details.attachments.get(item.id, [])
+        ],
+        observations=[
+            ObservationResponse(
+                id=observation.id,
+                text=observation.text,
+                created_at=observation.created_at,
+            )
+            for observation in details.observations.get(item.id, [])
         ],
         created_at=item.created_at,
         updated_at=item.updated_at,
@@ -285,6 +295,54 @@ def delete_goal_link(
         code="KNOWLEDGE_GOAL_UNLINKED",
         data={"item_id": item_id, "goal_id": goal_id},
         message="Ligação com a meta removida.",
+    )
+
+
+@router.post(
+    "/{item_id}/observations",
+    status_code=201,
+    summary="Adiciona uma observação ao conhecimento",
+)
+def create_observation(
+    item_id: int,
+    payload: KnowledgeObservationRequest,
+    request: Request,
+    session: Session = Depends(get_db),
+    actor: Actor = Depends(get_actor),
+):
+    observation = KnowledgeService(session, actor).add_observation(
+        item_id, payload.text
+    )
+    return api_response(
+        request,
+        code="KNOWLEDGE_OBSERVATION_CREATED",
+        data=ObservationResponse(
+            id=observation.id,
+            text=observation.text,
+            created_at=observation.created_at,
+        ).model_dump(mode="json"),
+        message="Observação adicionada.",
+        status_code=201,
+    )
+
+
+@router.delete(
+    "/{item_id}/observations/{observation_id}",
+    summary="Remove uma observação do conhecimento",
+)
+def delete_observation(
+    item_id: int,
+    observation_id: int,
+    request: Request,
+    session: Session = Depends(get_db),
+    actor: Actor = Depends(get_actor),
+):
+    KnowledgeService(session, actor).delete_observation(item_id, observation_id)
+    return api_response(
+        request,
+        code="KNOWLEDGE_OBSERVATION_DELETED",
+        data={"id": observation_id},
+        message="Observação removida.",
     )
 
 

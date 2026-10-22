@@ -340,3 +340,83 @@ def test_validates_title_and_links(client: TestClient, user_auth: dict) -> None:
     assert blank.json()["code"] == "VALIDATION_ERROR"
     assert bad_link.status_code == 422
     assert bad_link.json()["code"] == "VALIDATION_ERROR"
+
+
+def test_adds_and_removes_observations(
+    client: TestClient, user_auth: dict
+) -> None:
+    headers = auth_headers(user_auth)
+    item = _create(client, headers)
+
+    first = client.post(
+        f"/api/v1/knowledge/{item['id']}/observations",
+        json={"text": "  Revisar decorators  "},
+        headers=headers,
+    )
+    second = client.post(
+        f"/api/v1/knowledge/{item['id']}/observations",
+        json={"text": "Ler sobre Depends"},
+        headers=headers,
+    )
+
+    assert first.status_code == 201
+    assert first.json()["code"] == "KNOWLEDGE_OBSERVATION_CREATED"
+    assert first.json()["data"]["text"] == "Revisar decorators"
+    assert second.status_code == 201
+
+    detail = client.get(f"/api/v1/knowledge/{item['id']}", headers=headers).json()
+    texts = [row["text"] for row in detail["data"]["observations"]]
+    assert texts == ["Revisar decorators", "Ler sobre Depends"]
+
+    removed = client.delete(
+        f"/api/v1/knowledge/{item['id']}/observations/"
+        f"{first.json()['data']['id']}",
+        headers=headers,
+    )
+    assert removed.status_code == 200
+    assert removed.json()["code"] == "KNOWLEDGE_OBSERVATION_DELETED"
+
+    detail = client.get(f"/api/v1/knowledge/{item['id']}", headers=headers).json()
+    assert [row["text"] for row in detail["data"]["observations"]] == [
+        "Ler sobre Depends"
+    ]
+
+
+def test_rejects_blank_observation(client: TestClient, user_auth: dict) -> None:
+    headers = auth_headers(user_auth)
+    item = _create(client, headers)
+
+    response = client.post(
+        f"/api/v1/knowledge/{item['id']}/observations",
+        json={"text": "   "},
+        headers=headers,
+    )
+
+    assert response.status_code == 422
+    assert response.json()["code"] == "VALIDATION_ERROR"
+
+
+def test_other_user_cannot_touch_observation(
+    client: TestClient, user_auth: dict
+) -> None:
+    headers = auth_headers(user_auth)
+    item = _create(client, headers)
+    observation = client.post(
+        f"/api/v1/knowledge/{item['id']}/observations",
+        json={"text": "Privado"},
+        headers=headers,
+    ).json()["data"]
+
+    other = client.post(
+        "/api/v1/auth/register",
+        json={"username": "outro", "password": "senha1234"},
+    ).json()["data"]
+    other_headers = auth_headers(other)
+
+    deleted = client.delete(
+        f"/api/v1/knowledge/{item['id']}/observations/{observation['id']}",
+        headers=other_headers,
+    )
+
+    assert deleted.status_code == 404
+    assert deleted.json()["code"] == "KNOWLEDGE_NOT_FOUND"

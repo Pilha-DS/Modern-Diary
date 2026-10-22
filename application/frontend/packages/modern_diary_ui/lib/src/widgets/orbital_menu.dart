@@ -263,7 +263,9 @@ class _OrbitalLayout {
   final double innerRadius;
 
   static const double _minRadius = 84;
-  static const double _maxRadius = 168;
+  // 320 acomoda o menu cheio (12 itens) sem um alvo cobrir o outro; em tela
+  // estreita o `fitRadius` continua mandando.
+  static const double _maxRadius = 320;
   static const double _centerGapDegrees = 26;
 
   factory _OrbitalLayout.forItems(

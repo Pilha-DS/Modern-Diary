@@ -14,12 +14,12 @@ Sistema para ajudar no dia a dia: agenda, notas e ferramentas de estudo e de con
 
 A agenda é um conjunto de dias, onde é possível colocar notas, atividades e marcações, além de acompanhar o que foi planejado e o que foi concluído.
 
-- **Início (dashboard)**: mês atual em destaque com sombra azul, ocupando 40% da linha, ao lado da seleção rápida das telas (Calendário, Notas, Metas, Conhecimentos, Tags, Credenciais e Usuários para ADMIN). As notas e as atividades do dia são editadas no dia, no calendário. Passar o mouse sobre um dia abre um mini-modal ao lado dele com o feriado, o nível e as tags do dia, a prévia das notas e a lista de atividades — sem abrir o dia.
+- **Início (dashboard)**: mês atual em destaque com sombra azul, ocupando 40% da linha, ao lado da seleção rápida das telas (Calendário, Notas, Metas, Conhecimentos, Live graph, Tags, Credenciais e Usuários para ADMIN). As notas e as atividades do dia são editadas no dia, no calendário. Passar o mouse sobre um dia abre um mini-modal ao lado dele com o feriado, o nível e as tags do dia, a prévia das notas e a lista de atividades — sem abrir o dia.
 - **Calendário**: visão do ano inteiro. O mês atual ganha sombra azul, cada mês cresce ao passar o mouse e o clique em um dia abre o dia em um modal, sem sair da visão anual. O dia atual fica marcado em verde, o dia aberto fica azul sólido e cada marca (nota, atividade, prioridade alta e feriado) tem cor própria, para nunca se confundir com a seleção. Feriado é um status do dia, em laranja, exibido no calendário e no painel do dia; não é nota nem atividade. Cada dia tocável ganha apoio visual em cinza-claro no hover. O dia abre em leitura: o botão **Editar** libera criar nota, atividade, tag e trocar níveis; **Concluir** volta para a leitura. O dia aceita várias notas ao mesmo tempo.
 - **Dia (modal)**: a ordem é sempre data e dia da semana, nível do dia e tags, notas e atividades. As notas aparecem recolhidas em cartões com a primeira linha e a contagem de palavras; o clique (ou o hover) revela o conteúdo renderizado. No modo de edição, cada cartão ganha os botões de editar e excluir: editar abre o `MarkdownEditor` já no texto puro, com o nível de sensibilidade da nota no mesmo formulário.
 - **Metas**: lista em três colunas, doze por página. Cada meta tem título, descrição e prazo opcionais, etapas opcionais, barra de progresso com a contagem `x/y`, e ações de concluir, reabrir, arquivar, desarquivar, editar e excluir.
-- **Navegação**: a bola central abre o menu orbital com as abas (Início, Calendário, Notas, Metas, Conhecimentos, Tags, Credenciais, Usuários para ADMIN, Ajustes e Sair). O item Início fica no centro do arco. Os itens são só ícones, agrupados sem nome; ao ficar 2s sobre um deles aparece o nome no tooltip. Cada item usa a superfície invertida do tema (claro no escuro, escuro no claro) para destacar o menu, e o item da aba atual fica na cor da identidade. O logo no header leva de volta para Início.
-- **Header e rodapé**: o header tem a identidade do app e o avatar do usuário; o avatar abre um menu escondido com as configurações básicas (tema, foto, nacionalidade, localidade e telefone), também acessíveis em **Ajustes** no menu orbital. A nacionalidade é escolhida na tabela `countries` por um modal com busca por nome, sigla ou código ISO e carregamento sob demanda. Em **Ajustes**, o botão **Puxar feriados** baixa os feriados do ano (país da nacionalidade) e os guarda no banco; sem nacionalidade, ele pede que o usuário escolha uma antes. O rodapé mostra quem fez o projeto, o contato e a versão, configurados em build (`APP_AUTHOR_NAME`, `APP_CONTACT_EMAIL`, `APP_AUTHOR_PHONE`, `APP_AUTHOR_SITE`, `APP_VERSION`) — vazios usam o padrão em `application/frontend/app/lib/src/core/config/app_info.dart`. Toda tela tem a altura mínima da área visível, então o rodapé só aparece depois de rolar.
+- **Navegação**: a bola central abre o menu orbital com as abas (Início, Pesquisar, Calendário, Notas, Metas, Conhecimentos, Live graph, Tags, Credenciais, Usuários para ADMIN, Ajustes e Sair). O item Início fica no centro do arco. Os itens são só ícones, agrupados sem nome; ao ficar 2s sobre um deles aparece o nome no tooltip. Cada item usa a superfície invertida do tema (claro no escuro, escuro no claro) para destacar o menu, e o item da aba atual fica na cor da identidade. O logo no header leva de volta para Início. A **Pesquisa universal** também abre pelo ícone no header e pela tecla `Q`.
+- **Header e rodapé**: o header tem a identidade do app, o ícone da pesquisa universal e o avatar do usuário; o avatar abre um menu escondido com as configurações básicas (tema, foto, nacionalidade, localidade e telefone), também acessíveis em **Ajustes** no menu orbital. A nacionalidade é escolhida na tabela `countries` por um modal com busca por nome, sigla ou código ISO e carregamento sob demanda. Em **Ajustes**, o botão **Puxar feriados** baixa os feriados do ano (país da nacionalidade) e os guarda no banco; sem nacionalidade, ele pede que o usuário escolha uma antes. O rodapé mostra quem fez o projeto, o contato e a versão, configurados em build (`APP_AUTHOR_NAME`, `APP_CONTACT_EMAIL`, `APP_AUTHOR_PHONE`, `APP_AUTHOR_SITE`, `APP_VERSION`) — vazios usam o padrão em `application/frontend/app/lib/src/core/config/app_info.dart`. Toda tela tem a altura mínima da área visível, então o rodapé só aparece depois de rolar.
 - **Cartões**: listas de notas, conhecimentos, metas e credenciais usam o mesmo grid (`AppCardGrid`): colunas calculadas pela largura e **cartões da mesma linha com a mesma altura**.
 
 ## Notas
@@ -57,6 +57,15 @@ conhecimentos, mais densa fica a rede.
   abre um mini-modal ao lado dele com o nível, as tags e a contagem de conexões; os dados
   vêm da própria rede, então o hover não faz requisição. O painel fica à direita do nó e
   vira para a esquerda (ou para cima/baixo) quando não há espaço.
+- **Grafo interativo**: arrastar um nó muda e fixa a posição dele; arrastar o fundo
+  desloca a rede e a roda do mouse dá zoom. O painel **Ajustes da rede** controla a
+  repulsão entre os nós, a distância das conexões e a gravidade que puxa a rede para o
+  centro — mexer em um ajuste refaz a simulação sem perder o lugar dos nós. No modo
+  **Conectar nós**, arrastar um nó até outro cria a conexão direto no grafo; os demais
+  arrastos voltam a mover. **Reorganizar** solta os nós fixados e refaz o layout, e
+  **Centralizar** volta o zoom e o deslocamento ao original. Hover e seleção destacam a
+  vizinhança e apagam o resto da rede. **Tela cheia** abre a rede ocupando toda a janela,
+  com os mesmos ajustes e o mesmo desenho, e o mesmo botão volta para a versão encaixada.
 - **Conhecimento**: título, conteúdo em markdown, links externos com nome opcional e
   anexos de até 5 MB cada (até dez por conhecimento), guardados no banco e baixados por
   link temporário. O conteúdo aparece renderizado; clicar nele mostra o markdown puro
@@ -65,6 +74,49 @@ conhecimentos, mais densa fica a rede.
   desfaz as conexões e remove os anexos dele.
 - **Metas ligadas**: um conhecimento pode ser ligado a metas ativas e mostrar essa lista
   no cartão e no detalhe, com opção de desligar.
+
+## Grafo de vida (Live graph)
+
+Tudo o que o usuário registrou em um só desenho: dias, atividades, notas, metas e
+conhecimentos. Cada registro é um nó e cada ligação é uma linha.
+
+- **Conexões automáticas**: dois conhecimentos conectados, um conhecimento ligado a uma
+  meta e uma atividade do dia já aparecem ligados, sem nenhum passo extra.
+- **Conexões manuais**: no modo **Conectar nós**, arrastar um nó até outro liga os dois
+  registros, de qualquer tipo. Só essas ligações aparecem em **Conexões**, onde podem ser
+  desfeitas; as automáticas são desfeitas na origem (a relação, a meta ou o dia).
+- **Filtro**: as etiquetas mostram todos os registros ou só um tipo, e o filtro vai para o
+  back (o grafo não filtra uma lista já carregada).
+- **Abrir o registro**: o clique no nó leva à área de origem — conhecimento, meta, nota
+  ou o dia da atividade e do dia.
+- **Desenho**: arrastar move e fixa o nó, o fundo desloca, a roda dá zoom, **Ajustes da
+  rede** controla repulsão, distância e gravidade, e **Tela cheia** abre a rede inteira.
+  Tocar em um nó mostra o tipo e as conexões antes de abrir.
+- **Escopo**: até 80 registros por tipo, os mais recentes; os registros ligados à mão
+  entram mesmo fora dessa janela. `meta.truncated` avisa quando o teto foi atingido.
+- **Acesso**: cada tipo respeita a área e o nível de sensibilidade de quem lê; um registro
+  escondido não aparece no grafo nem pode ser ligado. Excluir um registro desfaz as
+  ligações dele.
+
+## Pesquisa universal
+
+Um campo único para procurar em tudo: notas, conhecimentos, metas, notas do dia e
+atividades. O índice vive no banco (FULLTEXT), não na tela.
+
+- **Como abrir**: o ícone de pesquisa no header, o item **Pesquisar** no menu orbital ou a
+  tecla **Q**. Com o cursor em qualquer campo de texto, `Q` é texto e não abre a pesquisa.
+- **Filtros**: tipo (mais de um ao mesmo tempo), período (`from`/`to`), tag (só
+  conhecimentos e metas, que são os registros que recebem tag) e nível de sensibilidade.
+  Os filtros vão para o back; o front nunca filtra a página já recebida.
+- **Resultado**: o cartão mostra o tipo, a data, o nível (quando não é público), o título
+  e a prévia do markdown — no dia, a prévia é o conteúdo da nota. Tocar fecha o modal e
+  abre o registro na área de origem; nota do dia e atividade abrem o dia.
+- **Paginação**: 20 por página com **Carregar mais**, lendo `meta` do envelope.
+- **Acesso**: cada tipo respeita a área e o nível de leitura de quem pesquisou; uma
+  credencial sem a área simplesmente não recebe aquele tipo. Registro acima do nível é
+  omitido, nunca sinalizado.
+- **Limite**: no MySQL, o FULLTEXT ignora termos com menos de 3 caracteres; buscas curtas
+  voltam vazias.
 
 ## Tags
 
@@ -301,6 +353,10 @@ As regras são aplicadas no backend, em um único ponto (`app/core/access.py`):
 | `POST` | `/api/v1/agenda/days/{day}/activities` | Autenticado | Cria uma atividade no dia |
 | `PATCH` | `/api/v1/agenda/activities/{activity_id}` | Autenticado | Edita, conclui e troca o nível da atividade |
 | `DELETE` | `/api/v1/agenda/activities/{activity_id}` | Autenticado | Exclui a atividade |
+| `GET` | `/api/v1/life/graph` | Autenticado | Grafo de vida com nós e arestas (`types` separados por vírgula; até 80 nós por tipo; `meta.truncated` avisa) |
+| `GET` | `/api/v1/search` | Autenticado | Pesquisa universal no título e no markdown (`q`, `types`, `from`, `to`, `tag_id`, `sensitivity`, `page`, `per_page`; teto de 100) |
+| `POST` | `/api/v1/life/links` | Autenticado | Liga dois registros de qualquer tipo (`source_type`, `source_ref`, `target_type`, `target_ref`) |
+| `DELETE` | `/api/v1/life/links` | Autenticado | Desfaz a ligação manual entre os dois registros |
 | `GET` | `/api/v1/countries` | Autenticado | Lista os países da tabela de referência (`q`, `continent`, `page`, `per_page`; teto de 100) |
 | `POST` | `/api/v1/holidays/sync` | Autenticado | Puxa os feriados do país (`country_iso2`) e guarda o ano corrente e o seguinte |
 
@@ -384,7 +440,7 @@ cd application/backend
 uv run pytest
 ```
 
-Os testes usam SQLite em memória e cobrem o cadastro inicial, login, envelope, paginação, permissões por role, o ciclo de vida das metas (etapas, progresso, conclusão e arquivo), os conhecimentos (links, conexões, grafo, anexos e isolamento por usuário), as notas (CRUD, fixar, busca, paginação e isolamento) e o acesso por secret (níveis, permissões independentes por área, criação acima do nível lido, revogação, rotação e auditoria).
+Os testes usam SQLite em memória e cobrem o cadastro inicial, login, envelope, paginação, permissões por role, o ciclo de vida das metas (etapas, progresso, conclusão e arquivo), os conhecimentos (links, conexões, grafo, anexos e isolamento por usuário), as notas (CRUD, fixar, busca, paginação e isolamento), o grafo de vida (ligações entre tipos, filtro, exclusão em cascata e isolamento por usuário) e o acesso por secret (níveis, permissões independentes por área, criação acima do nível lido, revogação, rotação e auditoria).
 
 ## Frontend
 

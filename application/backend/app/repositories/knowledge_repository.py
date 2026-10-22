@@ -6,6 +6,7 @@ from app.models.knowledge import (
     KnowledgeAttachment,
     KnowledgeGoalLink,
     KnowledgeItem,
+    KnowledgeObservation,
     KnowledgeRelation,
 )
 from app.models.tag import Tag, TagLink, TagTarget
@@ -150,6 +151,50 @@ class KnowledgeRepository:
             delete(KnowledgeAttachment).where(KnowledgeAttachment.item_id == item_id)
         )
 
+    def observations_for(self, item_ids: list[int]) -> list[KnowledgeObservation]:
+        if not item_ids:
+            return []
+        return list(
+            self.session.scalars(
+                select(KnowledgeObservation)
+                .where(KnowledgeObservation.item_id.in_(item_ids))
+                .order_by(KnowledgeObservation.id)
+            ).all()
+        )
+
+    def count_observations(self, item_id: int) -> int:
+        return (
+            self.session.scalar(
+                select(func.count(KnowledgeObservation.id)).where(
+                    KnowledgeObservation.item_id == item_id
+                )
+            )
+            or 0
+        )
+
+    def get_observation(
+        self, user_id: int, item_id: int, observation_id: int
+    ) -> KnowledgeObservation | None:
+        return self.session.scalar(
+            select(KnowledgeObservation)
+            .join(
+                KnowledgeItem,
+                KnowledgeItem.id == KnowledgeObservation.item_id,
+            )
+            .where(
+                KnowledgeObservation.id == observation_id,
+                KnowledgeObservation.item_id == item_id,
+                KnowledgeItem.user_id == user_id,
+            )
+        )
+
+    def delete_observations_for(self, item_id: int) -> None:
+        self.session.execute(
+            delete(KnowledgeObservation).where(
+                KnowledgeObservation.item_id == item_id
+            )
+        )
+
     def goals_for(
         self, item_ids: list[int], criteria: list | None = None
     ) -> list[tuple[int, int, str]]:
@@ -278,8 +323,13 @@ class KnowledgeRepository:
         ).all()
         return [(source, target) for source, target in rows]
 
-    def add(self, row: KnowledgeItem | KnowledgeRelation | KnowledgeAttachment) -> None:
+    def add(
+        self,
+        row: KnowledgeItem | KnowledgeRelation | KnowledgeAttachment | KnowledgeObservation,
+    ) -> None:
         self.session.add(row)
 
-    def remove(self, row: KnowledgeItem | KnowledgeAttachment) -> None:
+    def remove(
+        self, row: KnowledgeItem | KnowledgeAttachment | KnowledgeObservation
+    ) -> None:
         self.session.delete(row)

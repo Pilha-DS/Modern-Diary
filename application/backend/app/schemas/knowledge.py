@@ -13,6 +13,8 @@ MAX_LINK_LABEL_LENGTH = 120
 MAX_ITEMS_PER_USER = 2000
 MAX_ATTACHMENTS_PER_ITEM = 10
 MAX_ATTACHMENT_BYTES = 5 * 1024 * 1024
+MAX_OBSERVATIONS_PER_ITEM = 100
+MAX_OBSERVATION_LENGTH = 2000
 GRAPH_MAX_NODES = 300
 
 
@@ -100,6 +102,24 @@ class KnowledgeGoalRequest(BaseModel):
     goal_id: int = Field(gt=0)
 
 
+class KnowledgeObservationRequest(BaseModel):
+    text: str = Field(min_length=1, max_length=MAX_OBSERVATION_LENGTH)
+
+    @field_validator("text")
+    @classmethod
+    def clean_text(cls, value: str) -> str:
+        stripped = value.strip()
+        if not stripped:
+            raise ValueError("observação vazia")
+        return stripped
+
+
+class ObservationResponse(BaseModel):
+    id: int
+    text: str
+    created_at: datetime
+
+
 class AttachmentResponse(BaseModel):
     id: int
     filename: str
@@ -128,6 +148,7 @@ class KnowledgeItemResponse(BaseModel):
     goals: list[GoalReference]
     tags: list[TagSummary]
     attachments: list[AttachmentResponse]
+    observations: list[ObservationResponse]
     created_at: datetime
     updated_at: datetime
 

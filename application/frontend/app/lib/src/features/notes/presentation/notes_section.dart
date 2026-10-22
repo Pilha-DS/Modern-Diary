@@ -13,10 +13,20 @@ import 'notes_controller.dart';
 
 /// Sistema de notas: busca, filtro, lista de cartões e editor em markdown.
 class NotesSection extends StatefulWidget {
-  const NotesSection({super.key, required this.repository, required this.toat});
+  const NotesSection({
+    super.key,
+    required this.repository,
+    required this.toat,
+    this.focusNoteId,
+    this.onFocusHandled,
+  });
 
   final NotesDataSource repository;
   final ToatController toat;
+
+  /// Nota que outra área pediu para abrir; o pedido é consumido ao abrir.
+  final int? focusNoteId;
+  final VoidCallback? onFocusHandled;
 
   @override
   State<NotesSection> createState() => _NotesSectionState();
@@ -34,6 +44,24 @@ class _NotesSectionState extends State<NotesSection> {
   void initState() {
     super.initState();
     _controller = NotesController(widget.repository)..loadFirstPage();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _handleFocus());
+  }
+
+  @override
+  void didUpdateWidget(NotesSection oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.focusNoteId != oldWidget.focusNoteId) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _handleFocus());
+    }
+  }
+
+  void _handleFocus() {
+    final noteId = widget.focusNoteId;
+    if (noteId == null || !mounted) {
+      return;
+    }
+    widget.onFocusHandled?.call();
+    _openNoteById(noteId);
   }
 
   @override
@@ -77,13 +105,15 @@ class _NotesSectionState extends State<NotesSection> {
     }
   }
 
-  Future<void> _edit(NoteSummary summary) async {
+  Future<void> _edit(NoteSummary summary) => _openNoteById(summary.id);
+
+  Future<void> _openNoteById(int noteId) async {
     if (_openingNoteId != null) {
       return;
     }
-    setState(() => _openingNoteId = summary.id);
+    setState(() => _openingNoteId = noteId);
     try {
-      final note = await widget.repository.fetchNote(summary.id);
+      final note = await widget.repository.fetchNote(noteId);
       if (!mounted) {
         return;
       }

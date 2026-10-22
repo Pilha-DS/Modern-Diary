@@ -190,7 +190,11 @@ class ApiClient {
   }
 
   Map<String, String> _headers({bool includeContentType = true}) {
-    final headers = <String, String>{'Accept': 'application/json'};
+    final headers = <String, String>{
+      'Accept': 'application/json',
+      // A auditoria agrupa as ações pelo dia local de quem usou o app.
+      'X-Client-Offset-Minutes': '${DateTime.now().timeZoneOffset.inMinutes}',
+    };
     if (includeContentType) {
       headers['Content-Type'] = 'application/json';
     }

@@ -230,6 +230,7 @@ abstract final class AppStrings {
   static const String priorityHigh = 'Alta';
   static const String createActivity = 'Criar atividade';
   static const String cancel = 'Cancelar';
+  static const String save = 'Salvar';
   static const String close = 'Fechar';
   static const String delete = 'Excluir';
   static const String activityCreated = 'Atividade criada.';
@@ -472,6 +473,29 @@ abstract final class AppStrings {
   static const String knowledgeGraphEmptyMessage =
       'Crie conhecimentos e conecte-os para ver a rede crescer.';
   static const String knowledgeGraphSemantics = 'Rede de conhecimentos';
+  static const String knowledgeGraphConnect = 'Conectar nós';
+  static const String knowledgeGraphConnectOn = 'Conectando nós';
+  static const String knowledgeGraphConnectHint =
+      'Modo conexão: arraste um nó até outro para criar a conexão. '
+      'Desligue o modo para voltar a mover os nós.';
+  static const String knowledgeGraphSettings = 'Ajustes da rede';
+  static const String knowledgeGraphSettingsHide = 'Fechar ajustes';
+  static const String knowledgeGraphRepulsion = 'Repulsão';
+  static const String knowledgeGraphLinkDistance = 'Distância das conexões';
+  static const String knowledgeGraphGravity = 'Gravidade';
+  static const String knowledgeGraphReorganize = 'Reorganizar a rede';
+  static const String knowledgeGraphCenter = 'Centralizar a rede';
+  static const String knowledgeGraphZoomIn = 'Aproximar';
+  static const String knowledgeGraphZoomOut = 'Afastar';
+  static const String knowledgeGraphFullscreen = 'Tela cheia';
+  static const String knowledgeGraphFullscreenExit = 'Sair da tela cheia';
+  static const String knowledgeGraphDragHint =
+      'Arraste os nós para mudar a posição e use a roda do mouse para o zoom.';
+  static String knowledgeGraphConnected(String target) =>
+      'Conhecimento conectado a "$target".';
+
+  static String knowledgeGraphConnectLabel(String title) =>
+      'Conectar $title a outro nó';
   static const String knowledgeViewList = 'Lista';
   static const String knowledgeViewGraph = 'Grafo';
   static const String knowledgeNoContent = 'Sem conteúdo.';
@@ -489,6 +513,17 @@ abstract final class AppStrings {
   static const String knowledgeNoTags = 'Nenhuma tag.';
   static const String knowledgeAttachmentsTitle = 'Anexos';
   static const String knowledgeDeleteAttachmentTitle = 'Remover anexo?';
+  static const String knowledgeObservationsTitle = 'Observações';
+  static const String knowledgeNoObservations = 'Nenhuma observação ainda.';
+  static const String knowledgeAddObservation = 'Adicionar observação';
+  static const String knowledgeObservationHint =
+      'Escreva o que percebeu, aprendeu ou ainda quer revisar.';
+  static const String knowledgeObservationEmpty =
+      'Escreva a observação antes de salvar.';
+  static const String knowledgeObservationAdded = 'Observação adicionada.';
+  static const String knowledgeObservationRemoved = 'Observação removida.';
+  static const String knowledgeObservationDeleteTitle = 'Remover observação?';
+  static const String knowledgeObservationDeleteConfirm = 'Remover';
   static const String knowledgeLinksUpdated = 'Links atualizados.';
   static const String knowledgeNewLinkTitle = 'Novo link';
 
@@ -532,6 +567,19 @@ abstract final class AppStrings {
 
   static String knowledgeDeleteAttachmentMessage(String filename) =>
       'O anexo "$filename" será removido deste conhecimento.';
+
+  static String knowledgeObservationCreatedAt(DateTime at) =>
+      '${shortDate(at)} às ${shortTime(at)}';
+
+  static String knowledgeRemoveObservationLabel(String text) =>
+      'Remover observação $text';
+
+  static String knowledgeObservationPreview(String text) {
+    final singleLine = text.replaceAll(RegExp(r'\s+'), ' ').trim();
+    return singleLine.length <= 60
+        ? singleLine
+        : '${singleLine.substring(0, 60)}...';
+  }
 
   static String openItemLabel(String title) => 'Abrir $title';
 
@@ -879,7 +927,7 @@ abstract final class AppStrings {
   static const String settingsPhoneHint = '(00) 00000-0000';
   static const String settingsLocalNote =
       'Estes ajustes ficam guardados neste dispositivo.';
-  static const String settingsSave = 'Salvar';
+  static const String settingsSave = save;
   static const String settingsSaved = 'Configurações salvas.';
 
   static const String footerAboutLabel = 'Sobre o projeto';
@@ -889,4 +937,195 @@ abstract final class AppStrings {
 
   static String footerCreatedBy(String name) => 'Criado por $name';
   static String footerVersion(String version) => 'Versão $version';
+
+  // Sobre mim e auditoria
+  static const String aboutMeTab = 'Sobre mim';
+  static const String aboutMeTitle = 'Sobre mim';
+  static const String aboutMeSubtitle =
+      'Quem você é neste diário e o que fez em cada dia.';
+  static const String aboutMeUsername = 'Usuário';
+  static const String aboutMeRoleLabel = 'Permissão';
+  static const String aboutMeMemberSince = 'Na conta desde';
+
+  static const String auditTitle = 'Auditoria';
+  static const String previousMonth = 'Mês anterior';
+  static const String nextMonth = 'Próximo mês';
+  static const String auditToday = 'Hoje';
+  static const String auditSubtitle =
+      'As ações do dia e as conexões que elas criaram entre notas, metas e conhecimentos.';
+  static const String auditGraphSemantics = 'Grafo das ações do dia';
+  static const String auditGraphTruncated =
+      'Este dia tem muitas ações: o grafo mostra as primeiras.';
+  static const String auditLoading = 'Carregando a auditoria...';
+  static const String auditErrorTitle = 'Não foi possível carregar a auditoria';
+  static const String auditErrorRetry = 'Tentar novamente';
+  static const String auditEmptyTitle = 'Nenhuma ação neste dia';
+  static const String auditEmptyMessage =
+      'Escolha outro dia no calendário ou faça algo para o histórico começar.';
+  static const String auditLoadMore = 'Carregar mais ações';
+  static const String auditConnectHint =
+      'Cada ação liga os registros que ela tocou ao dia.';
+  static const String auditOpenEntity = 'Abrir registro';
+  static const String auditNodeOpenHint = 'Clique para abrir o registro';
+  static const String auditNodeDayHint = 'Clique para abrir o dia';
+
+  static String auditConnectionsCount(int total) =>
+      total == 1 ? '1 conexão' : '$total conexões';
+
+  static String auditDayTotal(int total) =>
+      total == 1 ? '1 ação' : '$total ações';
+
+  static String auditDaySemantics(DateTime day, int total) {
+    return '${day.day} de ${monthName(day.month)}, ${auditDayTotal(total)}';
+  }
+
+  static String auditCreated(String noun, String label) =>
+      'Criou $noun «$label».';
+
+  static String auditUpdated(String noun, String label) =>
+      'Editou $noun «$label».';
+
+  static String auditDeleted(String noun, String label) =>
+      'Excluiu $noun «$label».';
+
+  static String auditLinked(String source, String target) =>
+      'Conectou «$source» a «$target».';
+
+  static String auditUnlinked(String source, String target) =>
+      'Desconectou «$source» de «$target».';
+
+  /// Nome do tipo de registro com artigo, para a frase da ação.
+  static String auditEntityNoun(String type) {
+    return switch (type) {
+      'knowledge' => 'o conhecimento',
+      'goal' => 'a meta',
+      'note' => 'a nota',
+      'tag' => 'a tag',
+      'day' => 'o dia',
+      'activity' => 'a atividade',
+      _ => 'o registro',
+    };
+  }
+
+  /// Nome curto do tipo de registro, usado no resumo do nó do grafo.
+  static String auditEntityType(String type) {
+    return switch (type) {
+      'knowledge' => 'Conhecimento',
+      'goal' => 'Meta',
+      'note' => 'Nota',
+      'agenda_note' => 'Diário',
+      'tag' => 'Tag',
+      'day' => 'Dia',
+      'activity' => 'Atividade',
+      _ => 'Registro',
+    };
+  }
+
+  // Grafo de vida (Live graph)
+  static const String liveGraphTab = 'Live graph';
+  static const String liveGraphTitle = 'Grafo de vida';
+  static const String liveGraphSubtitle =
+      'Dias, atividades, notas, metas e conhecimentos: tudo o que você '
+      'registrou, conectado em um só lugar.';
+  static const String liveGraphSemantics = 'Grafo de vida';
+  static const String liveGraphLoading = 'Montando o grafo de vida...';
+  static const String liveGraphErrorTitle =
+      'Não foi possível carregar o grafo de vida';
+  static const String liveGraphErrorRetry = 'Tentar novamente';
+  static const String liveGraphEmptyTitle = 'Nada para conectar ainda';
+  static const String liveGraphEmptyMessage =
+      'Registre um dia, uma atividade, uma nota, uma meta ou um '
+      'conhecimento para o grafo começar.';
+  static const String liveGraphEmptyFilterTitle = 'Nenhum registro deste tipo';
+  static const String liveGraphEmptyFilterMessage =
+      'Escolha outro tipo ou volte para todos.';
+  static const String liveGraphAllTypes = 'Tudo';
+  static const String liveGraphConnect = 'Conectar nós';
+  static const String liveGraphConnectOn = 'Conectando nós';
+  static const String liveGraphConnectHint =
+      'Modo conexão: arraste um nó até outro para ligar os dois registros. '
+      'Desligue o modo para voltar a mover os nós.';
+  static const String liveGraphSettings = 'Ajustes da rede';
+  static const String liveGraphSettingsHide = 'Fechar ajustes';
+  static const String liveGraphRepulsion = 'Repulsão';
+  static const String liveGraphLinkDistance = 'Distância das conexões';
+  static const String liveGraphGravity = 'Gravidade';
+  static const String liveGraphDragHint =
+      'Arraste os nós para mudar a posição e use a roda do mouse para o zoom.';
+  static const String liveGraphRefresh = 'Atualizar o grafo';
+  static const String liveGraphTruncated =
+      'O grafo mostra os registros mais recentes de cada tipo.';
+  static const String liveGraphLinkCreated = 'Registros conectados.';
+  static const String liveGraphLinkFailed =
+      'Não foi possível conectar os registros. Tente novamente.';
+  static const String liveGraphLinkRemoved = 'Conexão removida.';
+  static const String liveGraphLinkRemoveFailed =
+      'Não foi possível remover a conexão. Tente novamente.';
+  static const String liveGraphLinksButton = 'Conexões';
+  static const String liveGraphLinksTitle = 'Conexões entre registros';
+  static const String liveGraphLinksHint =
+      'Só as conexões feitas aqui podem ser desfeitas; as que vieram de '
+      'relações, metas ou do dia continuam na origem.';
+  static const String liveGraphLinksEmpty =
+      'Nenhuma conexão manual ainda. Use "Conectar nós" no grafo.';
+  static const String liveGraphLinksClose = 'Fechar';
+  static const String liveGraphRemoveLinkTitle = 'Remover conexão?';
+  static const String liveGraphRemoveLinkAction = 'Remover conexão';
+  static const String liveGraphNodeOpenHint = 'Clique no nó para abrir';
+
+  static String liveGraphRemoveLinkMessage(String source, String target) {
+    return '«$source» e «$target» deixarão de aparecer conectados.';
+  }
+
+  static String liveGraphRemoveLinkLabel(String source, String target) {
+    return 'Remover conexão entre $source e $target';
+  }
+
+  static String liveGraphLinksCount(int total) {
+    return total == 1 ? '1 conexão manual' : '$total conexões manuais';
+  }
+
+  static String liveGraphTotal(int total) {
+    return total == 1 ? '1 registro' : '$total registros';
+  }
+
+  static String liveGraphConnected(String source, String target) {
+    return '«$source» conectado a «$target».';
+  }
+
+  // Pesquisa universal
+  static const String searchTitle = 'Pesquisar';
+  static const String searchAction = 'Pesquisar em tudo (Q)';
+  static const String searchClose = 'Fechar';
+  static const String searchHint = 'Pesquisar em todas as áreas';
+  static const String searchClear = 'Limpar busca';
+  static const String searchStartTitle = 'Pesquise em tudo';
+  static const String searchStartMessage =
+      'Dias, atividades, notas, metas e conhecimentos em um só lugar.';
+  static const String searchLoading = 'Pesquisando...';
+  static const String searchErrorTitle = 'Não foi possível pesquisar';
+  static const String searchRetry = 'Tentar novamente';
+  static const String searchEmptyTitle = 'Nada encontrado';
+  static const String searchLoadMore = 'Carregar mais';
+  static const String searchAllTypes = 'Tudo';
+  static const String searchAnyLevel = 'Qualquer nível';
+  static const String searchPeriodAny = 'Período';
+  static const String searchPeriodClear = 'Limpar período';
+  static const String searchTagLabel = 'Tag';
+
+  static String searchEmptyMessage(String query) {
+    return 'Nenhum registro contém «$query».';
+  }
+
+  static String searchTotal(int total) {
+    return total == 1 ? '1 registro' : '$total registros';
+  }
+
+  static String searchPeriodRange(String from, String to) {
+    return 'De $from a $to';
+  }
+
+  static String searchPeriodFrom(String from) => 'A partir de $from';
+
+  static String searchPeriodUntil(String to) => 'Até $to';
 }

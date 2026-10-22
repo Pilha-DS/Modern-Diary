@@ -9,6 +9,7 @@ import 'core/preferences/app_preferences.dart';
 import 'core/strings/app_strings.dart';
 import 'features/agenda/data/agenda_repository.dart';
 import 'features/agenda/data/holidays_repository.dart';
+import 'features/audit/data/audit_repository.dart';
 import 'features/auth/data/auth_repository.dart';
 import 'features/auth/data/session_store.dart';
 import 'features/auth/presentation/auth_controller.dart';
@@ -16,7 +17,9 @@ import 'features/auth/presentation/auth_screen.dart';
 import 'features/goals/data/goals_repository.dart';
 import 'features/home/presentation/home_screen.dart';
 import 'features/knowledge/data/knowledge_repository.dart';
+import 'features/life/data/life_repository.dart';
 import 'features/notes/data/notes_repository.dart';
+import 'features/search/data/search_repository.dart';
 import 'features/secrets/data/secrets_repository.dart';
 import 'features/settings/data/countries_repository.dart';
 import 'features/tags/data/tags_repository.dart';
@@ -38,8 +41,11 @@ class _ModernDiaryAppState extends State<ModernDiaryApp> {
   late final HolidaysRepository _holidaysRepository;
   late final GoalsRepository _goalsRepository;
   late final KnowledgeRepository _knowledgeRepository;
+  late final LifeRepository _lifeRepository;
   late final NotesRepository _notesRepository;
+  late final SearchRepository _searchRepository;
   late final TagsRepository _tagsRepository;
+  late final AuditRepository _auditRepository;
   late final SecretsRepository _secretsRepository;
   late final CountriesRepository _countriesRepository;
   late final ToatController _toatController;
@@ -58,8 +64,11 @@ class _ModernDiaryAppState extends State<ModernDiaryApp> {
     _holidaysRepository = HolidaysRepository(_apiClient);
     _goalsRepository = GoalsRepository(_apiClient);
     _knowledgeRepository = KnowledgeRepository(_apiClient);
+    _lifeRepository = LifeRepository(_apiClient);
     _notesRepository = NotesRepository(_apiClient);
+    _searchRepository = SearchRepository(_apiClient);
     _tagsRepository = TagsRepository(_apiClient);
+    _auditRepository = AuditRepository(_apiClient);
     _secretsRepository = SecretsRepository(_apiClient);
     _countriesRepository = CountriesRepository(_apiClient);
     _toatController = ToatController();
@@ -123,8 +132,11 @@ class _ModernDiaryAppState extends State<ModernDiaryApp> {
                   holidaysRepository: _holidaysRepository,
                   goalsRepository: _goalsRepository,
                   knowledgeRepository: _knowledgeRepository,
+                  lifeRepository: _lifeRepository,
                   notesRepository: _notesRepository,
+                  searchRepository: _searchRepository,
                   tagsRepository: _tagsRepository,
+                  auditRepository: _auditRepository,
                   secretsRepository: _secretsRepository,
                   countriesRepository: _countriesRepository,
                 ),

@@ -383,4 +383,51 @@ void main() {
     expect(cardSize.width, greaterThan(340));
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('detalhe do conhecimento adiciona e remove observações', (
+    tester,
+  ) async {
+    final source = FakeKnowledgeDataSource(initial: [_item(1)]);
+    final toat = await _pumpSection(tester, source);
+
+    await tester.tap(find.text('Conhecimento 1'));
+    await tester.pumpAndSettle();
+
+    expect(find.text(AppStrings.knowledgeNoObservations), findsOneWidget);
+
+    await tester.tap(find.text(AppStrings.knowledgeAddObservation));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.descendant(
+        of: find.byType(AppTextArea),
+        matching: find.byType(TextField),
+      ),
+      'Revisar decorators',
+    );
+    await tester.tap(find.text(AppStrings.save));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Revisar decorators'), findsOneWidget);
+    expect(source.items.single.observations.single.text, 'Revisar decorators');
+
+    await tester.tap(
+      find.byTooltip(
+        AppStrings.knowledgeRemoveObservationLabel(
+          AppStrings.knowledgeObservationPreview('Revisar decorators'),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(AppStrings.knowledgeObservationDeleteConfirm));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Revisar decorators'), findsNothing);
+    expect(find.text(AppStrings.knowledgeNoObservations), findsOneWidget);
+    expect(source.items.single.observations, isEmpty);
+
+    for (final message in [...toat.messages]) {
+      toat.dismiss(message.id);
+    }
+  });
 }

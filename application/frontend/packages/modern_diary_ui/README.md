@@ -339,11 +339,14 @@ AppChip(
 ### NetworkGraph
 
 Rede de nós e arestas com layout de forças, para qualquer relação muitos-para-muitos.
-O componente não conhece a aplicação: recebe nós, arestas e devolve o nó tocado.
-O tamanho do nó cresce com o `weight`.
+O componente não conhece a aplicação: recebe nós, arestas e devolve o nó tocado e,
+opcionalmente, o par conectado. O tamanho do nó cresce com o `weight`.
 
 ```dart
+final controller = NetworkGraphController();
+
 NetworkGraph(
+  controller: controller,
   semanticLabel: 'Rede de conhecimentos',
   nodes: const [
     NetworkNode(id: '1', label: 'Índices', weight: 3),
@@ -354,9 +357,31 @@ NetworkGraph(
   ],
   selectedId: '1',
   onNodeTap: (node) => openDetail(node.id),
+  onConnect: (source, target) => connect(source.id, target.id),
   nodePreview: (context, node) => NodePreview(node: node),
 );
 ```
+
+O grafo é interativo:
+
+- arrastar um nó move e **fixa** a posição dele; soltar reaquece a simulação para
+  os vizinhos se ajustarem;
+- arrastar o fundo desloca a rede e a roda do mouse dá zoom (no toque, dois dedos
+  dão zoom);
+- hover e seleção destacam o nó e as conexões dele e apagam o resto, para ler a
+  vizinhança;
+- com `NetworkGraphController.connectMode` ligado, arrastar de um nó até outro
+  chama `onConnect`; o alvo é destacado e a linha pontilhada segue o ponteiro.
+
+`NetworkGraphController` guarda os ajustes de força (`NetworkGraphSettings`:
+`repulsion`, `linkDistance` e `gravity`, todos multiplicadores a partir de `1`),
+o modo de conexão e os comandos `reorganize()` (solta os nós fixados e refaz o
+layout), `resetView()` (zoom e deslocamento originais) e `zoomIn()`/`zoomOut()`.
+Sem controller, o gráfico usa os ajustes padrão e não expõe comandos. Mudar os
+ajustes refaz a simulação a partir das posições atuais, sem perder o lugar dos
+nós. O controller também lembra as posições normalizadas da rede
+(`rememberedPositionOf`/`rememberPosition`), então desmontar e montar o grafo de
+novo — trocar de aba, entrar em tela cheia, voltar — continua o mesmo desenho.
 
 `nodePreview` monta um mini-modal ao lado do nó depois do tempo de hover do tema
 (`AppDurations.hoverTooltip`). O conteúdo vem de fora, por callback: o package
@@ -367,7 +392,60 @@ entre nós troca a prévia sem travar o hover. Sem `nodePreview`, o resumo curto
 `NetworkNode.tooltip` continua aparecendo no lugar.
 
 O grafo precisa de altura definida pelo pai (por exemplo, dentro de um `SizedBox`).
-Ocupa o espaço disponível e mantém o desenho proporcional.
+Ocupa o espaço disponível e mantém o desenho proporcional. Quando os nós mudam
+(filtro, exclusão ou conexão nova), as posições dos que continuam são preservadas
+e só os novos entram.
+
+### NetworkGraphSettingsPanel
+
+O painel **Ajustes da rede** pronto para o `NetworkGraph`: os três `AppSliderRow`
+de força e a dica de arrasto, sem estado próprio — quem escuta o controller e
+reconstrói o painel é a tela. Os textos chegam por `NetworkGraphSettingsLabels`,
+porque o package não conhece o idioma da aplicação.
+
+```dart
+ListenableBuilder(
+  listenable: controller,
+  builder: (context, _) => Stack(
+    children: [
+      NetworkGraph(controller: controller, nodes: nodes, edges: edges, onNodeTap: open),
+      Positioned(
+        top: AppSpacing.sm,
+        right: AppSpacing.sm,
+        child: NetworkGraphSettingsPanel(
+          controller: controller,
+          labels: const NetworkGraphSettingsLabels(
+            repulsion: 'Repulsão',
+            linkDistance: 'Distância das conexões',
+            gravity: 'Gravidade',
+            dragHint: 'Arraste os nós para mudar a posição.',
+          ),
+          maxWidth: 280,
+          maxHeight: constraints.maxHeight,
+        ),
+      ),
+    ],
+  ),
+);
+```
+
+### AppSliderRow
+
+Linha de ajuste contínuo com rótulo, valor formatado e `Slider`, sem borda. O
+valor exibido também é o que o leitor de tela anuncia, junto do rótulo.
+
+```dart
+AppSliderRow(
+  label: 'Repulsão',
+  icon: Icons.open_in_full_rounded,
+  value: settings.repulsion,
+  min: 0.3,
+  max: 2.4,
+  valueLabel: '1,4×',
+  onChanged: (value) => update(settings.copyWith(repulsion: value)),
+);
+```
+
 
 ### AppDialog
 

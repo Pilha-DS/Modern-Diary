@@ -115,6 +115,44 @@ void main() {
     expect(controller.items[1].relations, isEmpty);
   });
 
+  test('mantém a rede na tela ao conectar e recarrega o grafo', () async {
+    final source = FakeKnowledgeDataSource(initial: [_item(1), _item(2)]);
+    final controller = KnowledgeController(source);
+    addTearDown(controller.dispose);
+
+    await controller.loadFirstPage();
+    await controller.setView(KnowledgeView.graph);
+    final previous = controller.graph;
+
+    await controller.addRelation(1, 2);
+
+    expect(controller.graph, isNotNull);
+    expect(controller.graph, isNot(same(previous)));
+    expect(controller.graph!.edges.length, 1);
+    expect(source.graphCalls, 2);
+  });
+
+  test('adiciona e remove observações do conhecimento', () async {
+    final source = FakeKnowledgeDataSource(initial: [_item(1)]);
+    final controller = KnowledgeController(source);
+    addTearDown(controller.dispose);
+    await controller.loadFirstPage();
+
+    final (observation, error) = await controller.addObservation(
+      1,
+      'Revisar decorators',
+    );
+
+    expect(error, isNull);
+    expect(observation?.text, 'Revisar decorators');
+    expect(controller.items.single.observations.single.id, observation!.id);
+
+    final removeError = await controller.deleteObservation(1, observation.id);
+
+    expect(removeError, isNull);
+    expect(controller.items.single.observations, isEmpty);
+  });
+
   test('expõe o endereço absoluto do anexo', () async {
     final source = FakeKnowledgeDataSource();
     final controller = KnowledgeController(source);

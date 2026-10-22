@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
@@ -11,6 +12,7 @@ import 'package:modern_diary/src/core/preferences/app_preferences.dart';
 import 'package:modern_diary/src/core/strings/app_strings.dart';
 import 'package:modern_diary/src/features/agenda/data/agenda_repository.dart';
 import 'package:modern_diary/src/features/agenda/data/holidays_repository.dart';
+import 'package:modern_diary/src/features/audit/data/audit_repository.dart';
 import 'package:modern_diary/src/features/auth/data/auth_repository.dart';
 import 'package:modern_diary/src/features/auth/data/session_store.dart';
 import 'package:modern_diary/src/features/auth/domain/user.dart';
@@ -18,8 +20,10 @@ import 'package:modern_diary/src/features/auth/presentation/auth_controller.dart
 import 'package:modern_diary/src/features/goals/data/goals_repository.dart';
 import 'package:modern_diary/src/features/home/presentation/home_screen.dart';
 import 'package:modern_diary/src/features/knowledge/data/knowledge_repository.dart';
+import 'package:modern_diary/src/features/life/data/life_repository.dart';
 import 'package:modern_diary/src/features/knowledge/presentation/knowledge_card.dart';
 import 'package:modern_diary/src/features/notes/data/notes_repository.dart';
+import 'package:modern_diary/src/features/search/data/search_repository.dart';
 import 'package:modern_diary/src/features/secrets/data/secrets_repository.dart';
 import 'package:modern_diary/src/features/settings/data/countries_repository.dart';
 import 'package:modern_diary/src/features/tags/data/tags_repository.dart';
@@ -228,8 +232,11 @@ void main() {
           holidaysRepository: HolidaysRepository(apiClient),
           goalsRepository: GoalsRepository(apiClient),
           knowledgeRepository: KnowledgeRepository(apiClient),
+          lifeRepository: LifeRepository(apiClient),
           notesRepository: NotesRepository(apiClient),
+          searchRepository: SearchRepository(apiClient),
           tagsRepository: TagsRepository(apiClient),
+          auditRepository: AuditRepository(apiClient),
           secretsRepository: SecretsRepository(apiClient),
           countriesRepository: CountriesRepository(apiClient),
         ),
@@ -304,8 +311,11 @@ void main() {
           holidaysRepository: HolidaysRepository(apiClient),
           goalsRepository: GoalsRepository(apiClient),
           knowledgeRepository: KnowledgeRepository(apiClient),
+          lifeRepository: LifeRepository(apiClient),
           notesRepository: NotesRepository(apiClient),
+          searchRepository: SearchRepository(apiClient),
           tagsRepository: TagsRepository(apiClient),
+          auditRepository: AuditRepository(apiClient),
           secretsRepository: SecretsRepository(apiClient),
           countriesRepository: CountriesRepository(apiClient),
         ),
@@ -378,8 +388,11 @@ void main() {
           holidaysRepository: HolidaysRepository(apiClient),
           goalsRepository: GoalsRepository(apiClient),
           knowledgeRepository: KnowledgeRepository(apiClient),
+          lifeRepository: LifeRepository(apiClient),
           notesRepository: NotesRepository(apiClient),
+          searchRepository: SearchRepository(apiClient),
           tagsRepository: TagsRepository(apiClient),
+          auditRepository: AuditRepository(apiClient),
           secretsRepository: SecretsRepository(apiClient),
           countriesRepository: CountriesRepository(apiClient),
         ),
@@ -461,8 +474,11 @@ void main() {
           holidaysRepository: HolidaysRepository(apiClient),
           goalsRepository: GoalsRepository(apiClient),
           knowledgeRepository: KnowledgeRepository(apiClient),
+          lifeRepository: LifeRepository(apiClient),
           notesRepository: NotesRepository(apiClient),
+          searchRepository: SearchRepository(apiClient),
           tagsRepository: TagsRepository(apiClient),
+          auditRepository: AuditRepository(apiClient),
           secretsRepository: SecretsRepository(apiClient),
           countriesRepository: CountriesRepository(apiClient),
         ),
@@ -526,8 +542,11 @@ void main() {
           holidaysRepository: HolidaysRepository(apiClient),
           goalsRepository: GoalsRepository(apiClient),
           knowledgeRepository: KnowledgeRepository(apiClient),
+          lifeRepository: LifeRepository(apiClient),
           notesRepository: NotesRepository(apiClient),
+          searchRepository: SearchRepository(apiClient),
           tagsRepository: TagsRepository(apiClient),
+          auditRepository: AuditRepository(apiClient),
           secretsRepository: SecretsRepository(apiClient),
           countriesRepository: CountriesRepository(apiClient),
         ),
@@ -544,5 +563,85 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(tester.getRect(footer).top, lessThan(900));
+  });
+
+  testWidgets('a tecla Q abre a pesquisa, mas não enquanto se digita', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1000, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    SharedPreferences.setMockInitialValues({
+      'modern_diary_access_token': 'token-de-teste',
+      'modern_diary_user': jsonEncode({
+        'id': 1,
+        'username': 'jonathan',
+        'role': 'USER',
+        'created_at': '2026-10-19T23:00:00Z',
+      }),
+    });
+
+    final token = AuthToken();
+    final apiClient = ApiClient(
+      baseUrl: 'http://localhost:8000',
+      httpClient: _emptyApi(),
+      tokenProvider: () => token.value,
+    );
+    final auth = AuthController(
+      repository: AuthRepository(apiClient),
+      store: SessionStore(),
+      token: token,
+    );
+    await auth.restoreSession();
+
+    final toat = ToatController();
+    addTearDown(toat.dispose);
+    addTearDown(auth.dispose);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light(),
+        home: HomeScreen(
+          auth: auth,
+          toat: toat,
+          preferences: AppPreferences(),
+          usersRepository: UsersRepository(apiClient),
+          agendaRepository: AgendaRepository(apiClient),
+          holidaysRepository: HolidaysRepository(apiClient),
+          goalsRepository: GoalsRepository(apiClient),
+          knowledgeRepository: KnowledgeRepository(apiClient),
+          lifeRepository: LifeRepository(apiClient),
+          notesRepository: NotesRepository(apiClient),
+          searchRepository: SearchRepository(apiClient),
+          tagsRepository: TagsRepository(apiClient),
+          auditRepository: AuditRepository(apiClient),
+          secretsRepository: SecretsRepository(apiClient),
+          countriesRepository: CountriesRepository(apiClient),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyQ);
+    await tester.pumpAndSettle();
+    expect(find.text(AppStrings.searchHint), findsOneWidget);
+
+    await tester.tap(find.byTooltip(AppStrings.searchClose));
+    await tester.pumpAndSettle();
+    expect(find.text(AppStrings.searchHint), findsNothing);
+
+    // Com o cursor no campo de busca das notas, Q é texto, não atalho.
+    await tester.tap(find.bySemanticsLabel(AppStrings.menuLabel));
+    await tester.pumpAndSettle();
+    await tester.tap(menuIcon(Icons.sticky_note_2_outlined));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(TextField).first);
+    await tester.pumpAndSettle();
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyQ);
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.pumpAndSettle();
+
+    expect(find.text(AppStrings.searchHint), findsNothing);
   });
 }

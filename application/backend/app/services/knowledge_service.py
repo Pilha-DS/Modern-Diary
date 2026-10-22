@@ -9,15 +9,24 @@ from app.core.errors import AppError
 from app.core.security import create_attachment_token, decode_attachment_token
 from app.models.api_secret import AuditAction
 from app.models.area import Area
-from app.models.knowledge import KnowledgeAttachment, KnowledgeItem, KnowledgeRelation
+from app.models.audit import AuditArea, AuditKind
+from app.models.knowledge import (
+    KnowledgeAttachment,
+    KnowledgeItem,
+    KnowledgeObservation,
+    KnowledgeRelation,
+)
+from app.models.life_link import LinkType
 from app.models.sensitivity import Sensitivity
 from app.models.tag import TagTarget
 from app.repositories.knowledge_repository import KnowledgeRepository
+from app.repositories.life_repository import LifeRepository
 from app.schemas.knowledge import (
     GRAPH_MAX_NODES,
     MAX_ATTACHMENT_BYTES,
     MAX_ATTACHMENTS_PER_ITEM,
     MAX_ITEMS_PER_USER,
+    MAX_OBSERVATIONS_PER_ITEM,
     GraphEdge,
     GraphNode,
     KnowledgeGraphResponse,
@@ -25,6 +34,7 @@ from app.schemas.knowledge import (
     stored_links,
 )
 from app.schemas.tag import TagSummary
+from app.services.audit_service import AuditRef, AuditService
 from app.services.tag_service import TagService
 
 
@@ -36,6 +46,7 @@ class KnowledgeDetails:
     attachments: dict[int, list[tuple]]
     goals: dict[int, list[tuple[int, str]]]
     tags: dict[int, list[TagSummary]]
+    observations: dict[int, list[KnowledgeObservation]]
 
 
 class KnowledgeService:
@@ -45,6 +56,7 @@ class KnowledgeService:
         self.access = AccessGuard(session, actor)
         self.knowledge = KnowledgeRepository(session)
         self.tags = TagService(session)
+        self.audit = AuditService(session, actor.user_id)
 
     def list_items(
         self, *, offset: int, limit: int, tag_id: int | None = None
@@ -98,7 +110,18 @@ class KnowledgeService:
                 TagTarget.KNOWLEDGE,
                 item_ids,
             ),
+            observations=self._observations_of(item_ids),
         )
+
+    def _observations_of(
+        self, item_ids: list[int]
+    ) -> dict[int, list[KnowledgeObservation]]:
+        observations: dict[int, list[KnowledgeObservation]] = {
+            item_id: [] for item_id in item_ids
+        }
+        for observation in self.knowledge.observations_for(item_ids):
+            observations[observation.item_id].append(observation)
+        return observations
 
     def get_item(self, item_id: int) -> KnowledgeItem:
         return self._get_item_or_fail(item_id)
@@ -130,6 +153,11 @@ class KnowledgeService:
         self.knowledge.add(item)
         self.session.flush()
         self.access.record_created(Area.KNOWLEDGE, "knowledge", item.id)
+        self.audit.record(
+            area=AuditArea.KNOWLEDGE,
+            kind=AuditKind.CREATE,
+            source=AuditRef("knowledge", str(item.id), item.title),
+        )
         if tag_ids:
             self.tags.set_tags(
                 self.actor.user_id, TagTarget.KNOWLEDGE, item.id, tag_ids
@@ -175,6 +203,11 @@ class KnowledgeService:
                 tag_ids or [],
             )
 
+        self.audit.record(
+            area=AuditArea.KNOWLEDGE,
+            kind=AuditKind.UPDATE,
+            source=AuditRef("knowledge", str(item.id), item.title),
+        )
         self.session.commit()
         return item
 
@@ -190,7 +223,16 @@ class KnowledgeService:
         self.knowledge.delete_relations_for(item_id)
         self.knowledge.delete_attachments_for(item_id)
         self.knowledge.delete_goal_links_for(item_id)
+        self.knowledge.delete_observations_for(item_id)
+        LifeRepository(self.session).remove_links_for(
+            self.actor.user_id, LinkType.KNOWLEDGE, str(item_id)
+        )
         self.tags.remove_target_links(TagTarget.KNOWLEDGE, item_id)
+        self.audit.record(
+            area=AuditArea.KNOWLEDGE,
+            kind=AuditKind.DELETE,
+            source=AuditRef("knowledge", str(item.id), item.title),
+        )
         self.knowledge.remove(item)
         self.session.commit()
 
@@ -220,6 +262,12 @@ class KnowledgeService:
             )
 
         self.knowledge.add(KnowledgeRelation(source_id=item_id, target_id=target_id))
+        self.audit.record(
+            area=AuditArea.KNOWLEDGE,
+            kind=AuditKind.LINK,
+            source=AuditRef("knowledge", str(item.id), item.title),
+            target=AuditRef("knowledge", str(target.id), target.title),
+        )
         self.session.commit()
         return item_id, target_id
 
@@ -234,6 +282,12 @@ class KnowledgeService:
                 target_id=linked.id,
             )
         self.knowledge.remove_relation(item_id, target_id)
+        self.audit.record(
+            area=AuditArea.KNOWLEDGE,
+            kind=AuditKind.UNLINK,
+            source=AuditRef("knowledge", str(item.id), item.title),
+            target=AuditRef("knowledge", str(target.id), target.title),
+        )
         self.session.commit()
 
     def add_goal(self, item_id: int, goal_id: int) -> tuple[int, int]:
@@ -244,7 +298,8 @@ class KnowledgeService:
             target_type="knowledge",
             target_id=item.id,
         )
-        if self._get_goal_or_none(goal_id) is None:
+        goal = self._get_goal_or_none(goal_id)
+        if goal is None:
             raise AppError(
                 code="GOAL_NOT_FOUND",
                 message="Meta não encontrada.",
@@ -258,6 +313,12 @@ class KnowledgeService:
             )
 
         self.knowledge.add_goal_link(item_id, goal_id)
+        self.audit.record(
+            area=AuditArea.KNOWLEDGE,
+            kind=AuditKind.LINK,
+            source=AuditRef("knowledge", str(item.id), item.title),
+            target=AuditRef("goal", str(goal.id), goal.title),
+        )
         self.session.commit()
         return item_id, goal_id
 
@@ -269,13 +330,20 @@ class KnowledgeService:
             target_type="knowledge",
             target_id=item.id,
         )
-        if self._get_goal_or_none(goal_id) is None:
+        goal = self._get_goal_or_none(goal_id)
+        if goal is None:
             raise AppError(
                 code="GOAL_NOT_FOUND",
                 message="Meta não encontrada.",
                 status_code=404,
             )
         self.knowledge.remove_goal_link(item_id, goal_id)
+        self.audit.record(
+            area=AuditArea.KNOWLEDGE,
+            kind=AuditKind.UNLINK,
+            source=AuditRef("knowledge", str(item.id), item.title),
+            target=AuditRef("goal", str(goal.id), goal.title),
+        )
         self.session.commit()
 
     def add_attachment(
@@ -343,6 +411,60 @@ class KnowledgeService:
             action=AuditAction.DELETE,
         )
         self.knowledge.remove(attachment)
+        self.session.commit()
+
+    def add_observation(self, item_id: int, text: str) -> KnowledgeObservation:
+        item = self._get_item_or_fail(item_id)
+        self.access.ensure_write(
+            Area.KNOWLEDGE,
+            item.sensitivity,
+            target_type="knowledge",
+            target_id=item.id,
+        )
+        if (
+            self.knowledge.count_observations(item_id)
+            >= MAX_OBSERVATIONS_PER_ITEM
+        ):
+            raise AppError(
+                code="KNOWLEDGE_OBSERVATION_LIMIT",
+                message="Este conhecimento já atingiu o limite de observações.",
+                status_code=409,
+            )
+
+        observation = KnowledgeObservation(item_id=item_id, text=text)
+        self.knowledge.add(observation)
+        self.audit.record(
+            area=AuditArea.KNOWLEDGE,
+            kind=AuditKind.UPDATE,
+            source=AuditRef("knowledge", str(item.id), item.title),
+        )
+        self.session.commit()
+        return observation
+
+    def delete_observation(self, item_id: int, observation_id: int) -> None:
+        item = self._get_item_or_fail(item_id)
+        self.access.ensure_write(
+            Area.KNOWLEDGE,
+            item.sensitivity,
+            target_type="knowledge",
+            target_id=item.id,
+            action=AuditAction.DELETE,
+        )
+        observation = self.knowledge.get_observation(
+            self.actor.user_id, item_id, observation_id
+        )
+        if observation is None:
+            raise AppError(
+                code="KNOWLEDGE_OBSERVATION_NOT_FOUND",
+                message="Observação não encontrada.",
+                status_code=404,
+            )
+        self.knowledge.remove(observation)
+        self.audit.record(
+            area=AuditArea.KNOWLEDGE,
+            kind=AuditKind.UPDATE,
+            source=AuditRef("knowledge", str(item.id), item.title),
+        )
         self.session.commit()
 
     def download_path(self, item_id: int, attachment_id: int) -> str:

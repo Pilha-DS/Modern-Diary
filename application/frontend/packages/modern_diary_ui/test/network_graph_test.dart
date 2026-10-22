@@ -13,6 +13,39 @@ Widget _host(Widget child) {
   );
 }
 
+class _TapRecorder {
+  String? last;
+}
+
+/// Localiza a posição de cada nó tocando uma grade de pontos.
+///
+/// Os testes não têm acesso às posições internas da simulação; o toque chama
+/// `onNodeTap`, então a grade revela onde cada nó parou.
+Future<Map<String, Offset>> _findNodes(
+  WidgetTester tester,
+  Set<String> ids,
+  _TapRecorder recorder,
+) async {
+  final found = <String, Offset>{};
+  final rect = tester.getRect(find.byType(NetworkGraph));
+  for (var y = rect.top + 4;
+      y < rect.bottom - 4 && found.length < ids.length;
+      y += 24) {
+    for (var x = rect.left + 4;
+        x < rect.right - 4 && found.length < ids.length;
+        x += 24) {
+      recorder.last = null;
+      await tester.tapAt(Offset(x, y));
+      await tester.pump();
+      final id = recorder.last;
+      if (id != null && ids.contains(id)) {
+        found.putIfAbsent(id, () => Offset(x, y));
+      }
+    }
+  }
+  return found;
+}
+
 void main() {
   testWidgets('desenha nós e arestas da rede', (tester) async {
     await tester.pumpWidget(
@@ -187,6 +220,169 @@ void main() {
       await mouse.removePointer();
       await tester.pumpAndSettle();
     }
+  });
+
+  testWidgets('arrastar um nó muda a posição e fixa o nó', (tester) async {
+    await tester.pumpWidget(
+      _host(
+        NetworkGraph(
+          nodes: const [
+            NetworkNode(id: '1', label: 'Criptografia', tooltip: 'Nó movido'),
+          ],
+          edges: const [],
+          onNodeTap: (_) {},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final graph = find.byType(NetworkGraph);
+    final center = tester.getCenter(graph);
+    final target = center + const Offset(160, 80);
+    await tester.dragFrom(center, target - center);
+    await tester.pumpAndSettle();
+
+    final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+    await mouse.addPointer(location: Offset.zero);
+    addTearDown(mouse.removePointer);
+    await mouse.moveTo(target);
+    await tester.pump(AppDurations.hoverTooltip);
+    await tester.pumpAndSettle();
+
+    // A prévia aparece no ponto para onde o nó foi arrastado.
+    expect(find.text('Nó movido'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('modo de conexão conecta um nó ao outro pelo arrasto', (
+    tester,
+  ) async {
+    final recorder = _TapRecorder();
+    final connections = <(String, String)>[];
+    final controller = NetworkGraphController();
+    addTearDown(controller.dispose);
+
+    await tester.pumpWidget(
+      _host(
+        NetworkGraph(
+          controller: controller,
+          nodes: const [
+            NetworkNode(id: '1', label: 'Um', weight: 8),
+            NetworkNode(id: '2', label: 'Dois', weight: 8),
+          ],
+          edges: const [],
+          onNodeTap: (node) => recorder.last = node.id,
+          onConnect: (source, target) =>
+              connections.add((source.id, target.id)),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final rect = tester.getRect(find.byType(NetworkGraph));
+    final located = await _findNodes(tester, {'1', '2'}, recorder);
+    expect(located.keys.toSet(), {'1', '2'});
+
+    // Fixa cada nó em um ponto conhecido, longe do outro.
+    final firstSpot = Offset(rect.left + 140, rect.top + 120);
+    final secondSpot = Offset(rect.right - 140, rect.bottom - 120);
+    final firstStart = located['1']!;
+    await tester.dragFrom(firstStart, firstSpot - firstStart);
+    await tester.pumpAndSettle();
+
+    // O outro nó se moveu com a simulação; localiza de novo antes de mover.
+    final again = await _findNodes(tester, {'2'}, recorder);
+    final secondStart = again['2']!;
+    await tester.dragFrom(secondStart, secondSpot - secondStart);
+    await tester.pumpAndSettle();
+
+    controller.setConnectMode(true);
+    await tester.pump();
+
+    await tester.dragFrom(firstSpot, secondSpot - firstSpot);
+    await tester.pumpAndSettle();
+
+    expect(connections, [('1', '2')]);
+
+    // Fora do modo de conexão, o mesmo arrasto move o nó e não conecta.
+    controller.setConnectMode(false);
+    await tester.pump();
+    await tester.dragFrom(firstSpot, const Offset(0, -60));
+    await tester.pumpAndSettle();
+    expect(connections, [('1', '2')]);
+  });
+
+  testWidgets('controller reorganiza, centraliza e dá zoom sem quebrar', (
+    tester,
+  ) async {
+    final controller = NetworkGraphController();
+    addTearDown(controller.dispose);
+
+    await tester.pumpWidget(
+      _host(
+        NetworkGraph(
+          controller: controller,
+          nodes: const [
+            NetworkNode(id: '1', label: 'Um', weight: 3),
+            NetworkNode(id: '2', label: 'Dois'),
+          ],
+          edges: const [NetworkEdge(source: '1', target: '2')],
+          onNodeTap: (_) {},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    controller.updateSettings(
+      controller.settings.copyWith(repulsion: 2, gravity: 0.5),
+    );
+    controller.zoomIn();
+    controller.zoomOut();
+    controller.resetView();
+    controller.reorganize();
+    await tester.pumpAndSettle();
+
+    expect(find.byType(NetworkGraph), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('o layout fica lembrado no controller para reabrir igual', (
+    tester,
+  ) async {
+    final controller = NetworkGraphController();
+    addTearDown(controller.dispose);
+
+    Widget graph() => _host(
+      NetworkGraph(
+        controller: controller,
+        nodes: const [
+          NetworkNode(id: '1', label: 'Um'),
+          NetworkNode(id: '2', label: 'Dois'),
+        ],
+        edges: const [NetworkEdge(source: '1', target: '2')],
+        onNodeTap: (_) {},
+      ),
+    );
+
+    await tester.pumpWidget(graph());
+    await tester.pumpAndSettle();
+
+    for (final id in ['1', '2']) {
+      expect(controller.rememberedPositionOf(id), isNotNull);
+    }
+    final before = controller.rememberedPositionOf('1')!;
+
+    // Reabrir o grafo (tela cheia, troca de aba) continua de onde parou.
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pumpWidget(graph());
+    await tester.pumpAndSettle();
+
+    expect(controller.rememberedPositionOf('1'), isNotNull);
+    expect(
+      (controller.rememberedPositionOf('1')! - before).distance,
+      lessThan(0.1),
+    );
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('o chip dispara toque e remoção com rótulo', (tester) async {

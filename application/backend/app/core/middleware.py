@@ -7,10 +7,23 @@ from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoin
 from starlette.requests import Request
 from starlette.responses import Response
 
-from app.core.request_context import reset_request_id, set_request_id
+from app.core.request_context import (
+    reset_client_offset_minutes,
+    reset_request_id,
+    set_client_offset_minutes,
+    set_request_id,
+)
 
 REQUEST_ID_PATTERN = re.compile(r"^[A-Za-z0-9_-]{8,64}$")
 REQUEST_ID_HEADER = "X-Request-ID"
+CLIENT_OFFSET_HEADER = "X-Client-Offset-Minutes"
+
+
+def _parse_offset(raw: str) -> int:
+    try:
+        return int(raw)
+    except ValueError:
+        return 0
 
 logger = logging.getLogger("modern_diary.request")
 
@@ -25,11 +38,15 @@ class RequestIdMiddleware(BaseHTTPMiddleware):
         )
         request.state.request_id = request_id
         request_id_token = set_request_id(request_id)
+        offset_token = set_client_offset_minutes(
+            _parse_offset(request.headers.get(CLIENT_OFFSET_HEADER, ""))
+        )
 
         started_at = time.perf_counter()
         try:
             response = await call_next(request)
         finally:
+            reset_client_offset_minutes(offset_token)
             reset_request_id(request_id_token)
         duration_ms = (time.perf_counter() - started_at) * 1000
 

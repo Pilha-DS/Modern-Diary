@@ -3,6 +3,7 @@ from datetime import date
 from sqlalchemy.orm import Session
 
 from app.core.errors import AppError
+from app.models.audit import AuditArea, AuditKind
 from app.models.tag import Tag, TagTarget
 from app.repositories.tag_repository import TagRepository
 from app.schemas.tag import (
@@ -11,6 +12,7 @@ from app.schemas.tag import (
     TagUsageResponse,
     tag_summary,
 )
+from app.services.audit_service import AuditRef, AuditService
 
 
 class TagService:
@@ -48,6 +50,12 @@ class TagService:
 
         tag = Tag(user_id=user_id, name=name, color=color, description=description)
         self.tags.add(tag)
+        self.session.flush()
+        AuditService(self.session, user_id).record(
+            area=AuditArea.TAG,
+            kind=AuditKind.CREATE,
+            source=AuditRef("tag", str(tag.id), tag.name),
+        )
         self.session.commit()
         return tag
 
@@ -71,12 +79,22 @@ class TagService:
         if change_description:
             tag.description = description
 
+        AuditService(self.session, user_id).record(
+            area=AuditArea.TAG,
+            kind=AuditKind.UPDATE,
+            source=AuditRef("tag", str(tag.id), tag.name),
+        )
         self.session.commit()
         return tag
 
     def delete_tag(self, user_id: int, tag_id: int) -> None:
         tag = self._get_tag_or_fail(user_id, tag_id)
         self.tags.remove_links_for_tag(tag.id)
+        AuditService(self.session, user_id).record(
+            area=AuditArea.TAG,
+            kind=AuditKind.DELETE,
+            source=AuditRef("tag", str(tag.id), tag.name),
+        )
         self.tags.remove(tag)
         self.session.commit()
 

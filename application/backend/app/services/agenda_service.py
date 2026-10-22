@@ -7,10 +7,14 @@ from app.core.errors import AppError
 from app.models.agenda import AgendaActivity, AgendaDay, AgendaNote, Priority
 from app.models.api_secret import AuditAction
 from app.models.area import Area
+from app.models.audit import AuditArea, AuditKind
+from app.models.life_link import LinkType
 from app.models.sensitivity import Sensitivity
 from app.repositories.agenda_repository import AgendaRepository
+from app.repositories.life_repository import LifeRepository
 from app.schemas.agenda import AgendaSummaryDay
 from app.schemas.tag import TagSummary
+from app.services.audit_service import AuditRef, AuditService
 from app.services.holiday_service import HolidayService
 from app.services.tag_service import TagService
 
@@ -27,6 +31,7 @@ class AgendaService:
         self.agenda = AgendaRepository(session)
         self.tags = TagService(session)
         self.holidays = HolidayService(session, actor.user_id)
+        self.audit = AuditService(session, actor.user_id)
 
     def summarize(self, start: date, end: date) -> list[AgendaSummaryDay]:
         if start > end:
@@ -161,6 +166,11 @@ class AgendaService:
             target_id=row.id if row is not None else None,
         )
         tags = self.tags.set_day_tags(self.actor.user_id, day, tag_ids)
+        self.audit.record(
+            area=AuditArea.DAY,
+            kind=AuditKind.UPDATE,
+            source=_day_ref(day),
+        )
         self.session.commit()
         return tags
 
@@ -185,6 +195,11 @@ class AgendaService:
             )
             self.access.ensure_new_level(Area.DAY, sensitivity)
             row.sensitivity = sensitivity
+        self.audit.record(
+            area=AuditArea.DAY,
+            kind=AuditKind.UPDATE,
+            source=_day_ref(day),
+        )
         self.session.commit()
         return row
 
@@ -221,6 +236,12 @@ class AgendaService:
         self.agenda.add(note)
         self.session.flush()
         self.access.record_created(Area.DAY, "agenda_note", note.id)
+        self.audit.record(
+            area=AuditArea.DAY,
+            kind=AuditKind.CREATE,
+            source=AuditRef("note", str(note.id), _day_note_label(note)),
+            target=_day_ref(day),
+        )
         self.session.commit()
         return note
 
@@ -245,6 +266,12 @@ class AgendaService:
             self.access.ensure_new_level(Area.DAY, sensitivity)
             note.sensitivity = sensitivity
 
+        self.audit.record(
+            area=AuditArea.DAY,
+            kind=AuditKind.UPDATE,
+            source=AuditRef("note", str(note.id), _day_note_label(note)),
+            target=_day_ref(note.day),
+        )
         self.session.commit()
         return note
 
@@ -258,6 +285,12 @@ class AgendaService:
             action=AuditAction.DELETE,
         )
         day = note.day
+        self.audit.record(
+            area=AuditArea.DAY,
+            kind=AuditKind.DELETE,
+            source=AuditRef("note", str(note.id), _day_note_label(note)),
+            target=_day_ref(day),
+        )
         self.agenda.remove(note)
         self.session.commit()
         self._drop_day_without_content(day)
@@ -290,6 +323,12 @@ class AgendaService:
         self.agenda.add(activity)
         self.session.flush()
         self.access.record_created(Area.ACTIVITY, "activity", activity.id)
+        self.audit.record(
+            area=AuditArea.ACTIVITY,
+            kind=AuditKind.CREATE,
+            source=AuditRef("activity", str(activity.id), activity.title),
+            target=_day_ref(day),
+        )
         self.session.commit()
         return activity
 
@@ -324,6 +363,12 @@ class AgendaService:
             self.access.ensure_new_level(Area.ACTIVITY, sensitivity)
             activity.sensitivity = sensitivity
 
+        self.audit.record(
+            area=AuditArea.ACTIVITY,
+            kind=AuditKind.UPDATE,
+            source=AuditRef("activity", str(activity.id), activity.title),
+            target=_day_ref(activity.day),
+        )
         self.session.commit()
         return activity
 
@@ -337,7 +382,16 @@ class AgendaService:
             action=AuditAction.DELETE,
         )
         day = activity.day
+        self.audit.record(
+            area=AuditArea.ACTIVITY,
+            kind=AuditKind.DELETE,
+            source=AuditRef("activity", str(activity.id), activity.title),
+            target=_day_ref(day),
+        )
         self.agenda.remove(activity)
+        LifeRepository(self.session).remove_links_for(
+            self.actor.user_id, LinkType.ACTIVITY, str(activity.id)
+        )
         self.session.commit()
         self._drop_day_without_content(day)
 
@@ -378,6 +432,9 @@ class AgendaService:
         if self.agenda.count_activities(self.actor.user_id, day) > 0:
             return
         self.agenda.delete_day(self.actor.user_id, day)
+        LifeRepository(self.session).remove_links_for(
+            self.actor.user_id, LinkType.DAY, day.isoformat()
+        )
         self.session.commit()
 
     def _get_activity_or_fail(self, activity_id: int) -> AgendaActivity:
@@ -401,3 +458,12 @@ def _priority_from_rank(rank: int) -> Priority:
     if rank == 1:
         return Priority.MEDIUM
     return Priority.LOW
+
+
+def _day_ref(day: date) -> AuditRef:
+    return AuditRef("day", day.isoformat(), day.isoformat())
+
+
+def _day_note_label(note: AgendaNote) -> str:
+    first_line = note.content.strip().splitlines()
+    return (first_line[0] if first_line else "Nota do dia")[:80]
